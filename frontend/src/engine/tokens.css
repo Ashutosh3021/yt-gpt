@@ -1,0 +1,68 @@
+:root {
+  /* Roles, not hues. */
+  --c-bg: #f2f2ed;
+  --c-panel: #f8f7f2;
+  --c-panel-strong: #fffefa;
+  --c-ink: #15181b;
+  --c-muted: #5f666b;
+  --c-faint: #686e73;
+  --c-line: #d9d9d1;
+  --c-line-strong: #b9bbb2;
+  --c-signal: #d8401a;
+  --c-signal-ink: #a92c0d;
+  --c-signal-wash: #f6e2d9;
+  --c-rail: #171a1d;
+  --c-rail-2: #1e2226;
+  --c-rail-ink: #ecede7;
+  --c-rail-muted: #a8adaf;
+  --c-rail-line: #33383c;
+  --c-live: #14615c;
+  --c-live-wash: #dfeae6;
+  --c-warn: #7a4a00;
+  --c-warn-wash: #f3e8d3;
+  --c-fail: #9e2418;
+  --c-fail-wash: #f6dfda;
+  --c-curtain: #15181b;
+  --c-focus: #a92c0d;
+
+  /* Type */
+  --f-display: 'Supreme', 'Helvetica Neue', Arial, sans-serif;
+  --f-body: 'Supreme', 'Helvetica Neue', Arial, sans-serif;
+  --f-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --t-mega: clamp(3.2rem, 1.4rem + 7.6vw, 8.5rem);
+  --t-xl: clamp(2.1rem, 1.3rem + 3.2vw, 4.1rem);
+  --t-l: clamp(1.55rem, 1.2rem + 1.4vw, 2.25rem);
+  --t-m: clamp(1.125rem, 1.02rem + 0.42vw, 1.375rem);
+  --t-body: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+  --t-s: 0.875rem;
+  --t-xs: 0.8125rem;
+  --t-2xs: 0.75rem;
+  --t-mono: 0.75rem;
+
+  /* Space */
+  --u: clamp(0.5rem, 0.4rem + 0.5vw, 1rem);
+  --gutter: clamp(1rem, 0.7rem + 1.4vw, 2rem);
+  --page-max: 1440px;
+  --rail-w: 304px;
+  --folio-w: 368px;
+  --topbar-h: 60px;
+
+  /* Shape */
+  --radius: 2px;
+
+  /* Layers */
+  --z-base: 0;
+  --z-content: 1;
+  --z-trace: 30;
+  --z-header: 50;
+  --z-popover: 70;
+  --z-cursor: 80;
+  --z-curtain: 90;
+  --z-dialog: 95;
+  --z-loader: 100;
+}
+
+html {
+  --c-focus: var(--c-signal-ink);
+}

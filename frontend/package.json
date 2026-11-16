@@ -1,0 +1,30 @@
+{
+  "name": "yt-gpt-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.6",
+    "gsap": "^3.13.0",
+    "lenis": "^1.3.4",
+    "marked": "^15.0.12",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.1",
+    "axe-core": "^4.10.3",
+    "playwright": "^1.53.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
