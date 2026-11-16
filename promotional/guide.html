@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup: yt-gpt</title>
+  <meta name="description" content="Install yt-gpt, connect your model, build a workspace, and ask questions with timestamped citations. A five minute setup guide.">
+  <meta name="theme-color" content="#f1f0e9">
+  <link rel="canonical" href="https://yt-gptt.vercel.app/guide.html">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Setup: yt-gpt">
+  <meta property="og:description" content="From link to cited answer. Install, connect a model, and build your first workspace.">
+  <meta property="og:url" content="https://yt-gptt.vercel.app/guide.html">
+  <meta property="og:image" content="https://yt-gptt.vercel.app/assets/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Setup: yt-gpt">
+  <meta name="twitter:description" content="From link to cited answer. Install, connect a model, and build your first workspace.">
+  <meta name="twitter:image" content="https://yt-gptt.vercel.app/assets/img/og.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/supreme-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/supreme-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('motion')}</script>
+  <script defer src="assets/vendor/gsap.min.js"></script>
+  <script defer src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script defer src="assets/vendor/lenis.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="intro" aria-hidden="true">
+    <div class="intro__brand">
+      <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+        <rect width="64" height="64" fill="currentColor"></rect>
+        <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+        <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+        <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+      </svg>
+      <span>yt-gpt</span>
+    </div>
+    <div class="intro__tc">00:00:00</div>
+    <div class="intro__track"><span></span></div>
+  </div>
+
+  <header class="site-head">
+    <a class="brand" href="index.html" aria-label="yt-gpt home">
+      <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+        <rect width="64" height="64" fill="currentColor"></rect>
+        <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+        <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+        <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+      </svg>
+      <span>yt-gpt</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="index.html#minute">The minute</a>
+      <a href="index.html#how">How it works</a>
+      <a href="index.html#evidence">Evidence</a>
+      <a href="guide.html" aria-current="page">Setup</a>
+    </nav>
+    <p class="site-head__meta"><span class="pulse" aria-hidden="true"></span> LOCAL / 127.0.0.1</p>
+  </header>
+
+  <main id="main">
+    <section class="page-hero" aria-labelledby="guide-title">
+      <p class="section-kicker"><span>SETUP / 00:00</span><span class="mono">127.0.0.1:8765</span></p>
+      <h1 id="guide-title">From link to<br>cited answer.</h1>
+      <p class="page-hero__lede">A five minute tour of the intended install, the first workspace, and the parts that keep answers honest.</p>
+      <div class="page-hero__meta">
+        <span>PYTHON 3.11+</span>
+        <span>LOCALHOST</span>
+        <span>YOUR API KEY</span>
+        <span>NO TELEMETRY</span>
+      </div>
+    </section>
+
+    <div class="guide">
+      <aside class="toc" aria-label="On this page">
+        <p class="toc__label">ON THIS PAGE</p>
+        <ol>
+          <li><a href="#before">Before you start</a></li>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#model">Connect a model</a></li>
+          <li><a href="#workspace">Make a workspace</a></li>
+          <li><a href="#videos">Add videos</a></li>
+          <li><a href="#ask">Ask and verify</a></li>
+          <li><a href="#sources">Sources and files</a></li>
+          <li><a href="#limits">Troubleshooting</a></li>
+          <li><a href="#sketch">The first sketch</a></li>
+          <li><a href="#next">What ships next</a></li>
+        </ol>
+        <div class="toc__status">
+          <span>STATUS</span>
+          <strong>IN DESIGN</strong>
+          <p>The package is not released yet. The commands describe the intended experience.</p>
+        </div>
+      </aside>
+
+      <article class="guide__body">
+        <section class="guide-section" id="before">
+          <div class="guide-section__head"><span class="mono">01</span><h2>Before you start</h2></div>
+          <p>yt-gpt runs as a local web app. You install it with pip, start a server, and open a browser. There is no account on someone else's machine.</p>
+          <ul class="checklist">
+            <li><strong>Python 3.11 or newer.</strong> A normal virtual environment is enough.</li>
+            <li><strong>A model endpoint.</strong> Use a hosted provider or an OpenAI-compatible local server. Your key is write-only in the UI and stays in the OS keyring where available.</li>
+            <li><strong>No ffmpeg setup.</strong> The package uses a bundled binary through <code>imageio-ffmpeg</code>. <code>yt-dlp</code> is a dependency and may need updates when YouTube changes.</li>
+            <li><strong>Optional extras.</strong> Whisper for videos without captions. Local embeddings for semantic search.</li>
+          </ul>
+          <div class="callout">
+            <span class="callout__label">PRIVACY</span>
+            <p>The server binds to <code>127.0.0.1</code> by default. Videos, transcripts, and chats stay on your machine. Only the text and images needed for a question are sent to the provider you configure.</p>
+          </div>
+        </section>
+
+        <section class="guide-section" id="install">
+          <div class="guide-section__head"><span class="mono">02</span><h2>Install</h2></div>
+          <p>Start with the core package. Add an extra only when you need it.</p>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>INSTALL</span><button class="copy" type="button" data-copy aria-label="Copy install command">Copy</button></div>
+            <pre tabindex="0"><code>pip install yt-gpt</code></pre>
+          </div>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>OPTIONAL EXTRAS</span><button class="copy" type="button" data-copy aria-label="Copy optional extras commands">Copy</button></div>
+            <pre tabindex="0"><code>pip install "yt-gpt[whisper]"      # local fallback for videos with no captions
+pip install "yt-gpt[embeddings]"   # local embeddings for semantic search
+pip install "yt-gpt[all]"          # everything</code></pre>
+          </div>
+
+          <p>Then start the server. It opens <code>http://127.0.0.1:8765</code> in your browser.</p>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>START</span><button class="copy" type="button" data-copy aria-label="Copy start commands">Copy</button></div>
+            <pre tabindex="0"><code>yt-gpt serve</code></pre>
+          </div>
+
+          <p>Use <code>yt-gpt doctor</code> when a link fails, ffmpeg is missing, or derived files need a rebuild.</p>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>DIAGNOSE</span><button class="copy" type="button" data-copy aria-label="Copy diagnose commands">Copy</button></div>
+            <pre tabindex="0"><code>yt-gpt doctor
+yt-gpt doctor --rebuild
+yt-gpt export &lt;workspace&gt;
+yt-gpt version</code></pre>
+          </div>
+        </section>
+
+        <section class="guide-section" id="model">
+          <div class="guide-section__head"><span class="mono">03</span><h2>Connect a model</h2></div>
+          <p>Open <strong>Settings → LLM</strong>. Choose a provider, enter the base URL if the provider needs one, paste your API key, and pick a chat model. The key is write-only.</p>
+
+          <figure class="guide-figure" data-reveal>
+            <div class="monitor monitor--flat">
+              <div class="monitor__bar"><span>SETTINGS / LLM</span><span>WRITE-ONLY KEY</span></div>
+              <img src="assets/img/settings.webp" width="1440" height="2004" alt="yt-gpt settings page with provider, base URL, API key, and model fields." loading="lazy" decoding="async">
+            </div>
+            <figcaption>Provider, base URL, key, and model. The key is never written into a workspace folder.</figcaption>
+          </figure>
+
+          <h3>Ollama example</h3>
+          <p>Ollama exposes an OpenAI-compatible endpoint. Start it, pull a model, then use the local base URL in Settings.</p>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>OLLAMA</span><button class="copy" type="button" data-copy aria-label="Copy Ollama commands">Copy</button></div>
+            <pre tabindex="0"><code>ollama serve
+ollama pull llama3.1</code></pre>
+          </div>
+
+          <div class="keyvals">
+            <div><span>BASE URL</span><code>http://127.0.0.1:11434/v1</code></div>
+            <div><span>MODEL</span><code>llama3.1</code></div>
+          </div>
+
+          <p class="fineprint">Visual features need a model with vision and tool calling. If the model cannot use them, the visual tools stay hidden and the UI says why.</p>
+        </section>
+
+        <section class="guide-section" id="workspace">
+          <div class="guide-section__head"><span class="mono">04</span><h2>Make a workspace</h2></div>
+          <p>Sign up or log in. From the desk, create a named workspace. A workspace is a folder for videos, transcripts, sessions, and source documents.</p>
+
+          <figure class="guide-figure" data-reveal>
+            <div class="monitor monitor--flat">
+              <div class="monitor__bar"><span>THE DESK</span><span>1 WORKSPACE</span></div>
+              <img src="assets/img/dashboard.webp" width="1440" height="900" alt="yt-gpt workspaces dashboard with a sample workspace and a create field." loading="lazy" decoding="async">
+            </div>
+            <figcaption>One workspace is enough to start. Files live under <code>~/.yt-gpt</code>.</figcaption>
+          </figure>
+
+          <p>Open the workspace. The library is on the left, the conversation in the middle, and the Sources panel on the right. The layout is the same on a phone, with drawers for the library and sources.</p>
+        </section>
+
+        <section class="guide-section" id="videos">
+          <div class="guide-section__head"><span class="mono">05</span><h2>Add videos</h2></div>
+          <p>Paste links into the library, one per line. Watch links, short links, and playlists are supported.</p>
+
+          <div class="cmd">
+            <div class="cmd__bar"><span>LINKS</span><button class="copy" type="button" data-copy aria-label="Copy sample YouTube links">Copy</button></div>
+            <pre tabindex="0"><code>https://www.youtube.com/watch?v=...
+https://youtu.be/...
+https://www.youtube.com/playlist?list=...</code></pre>
+          </div>
+
+          <p>Each link moves through its own status: queued, fetching, transcribing, ready, or failed. A private or removed video fails alone. The rest of the batch continues.</p>
+
+          <figure class="guide-figure" data-reveal>
+            <div class="monitor monitor--flat">
+              <div class="monitor__bar"><span>LIBRARY / SOURCES</span><span>READY 04 / FAILED 01</span></div>
+              <img src="assets/img/workspace.webp" width="1440" height="900" alt="yt-gpt library with four ready sources and one failed private video." loading="lazy" decoding="async">
+            </div>
+            <figcaption>Captions first. The source label shows whether a transcript is manual, auto, or Whisper.</figcaption>
+          </figure>
+
+          <h3>What gets stored</h3>
+          <p>The raw workspace export is <code>transcripts.md</code>, regenerated whenever videos are added or removed. Each video also keeps its timestamped segments, clean text, and retrieval chunks.</p>
+
+          <div class="callout">
+            <span class="callout__label">TOKEN BUDGET</span>
+            <p>Existing captions are reused, never re-transcribed needlessly. Auto-caption tags, timestamps, and rolling duplicate lines are stripped. Long videos are chunked, and only relevant chunks are retrieved per question.</p>
+          </div>
+        </section>
+
+        <section class="guide-section" id="ask">
+          <div class="guide-section__head"><span class="mono">06</span><h2>Ask and verify</h2></div>
+          <p>Create a session, choose a grounding mode and persona, then ask. The answer streams in with citation chips. Each chip opens the video at that second.</p>
+
+          <figure class="guide-figure" data-reveal>
+            <div class="monitor monitor--flat">
+              <div class="monitor__bar"><span>CITATION TRACE</span><span>STRICTLY GROUNDED</span></div>
+              <img src="assets/img/citation.webp" width="1440" height="900" alt="yt-gpt answer with a citation chip open and its source card visible." loading="lazy" decoding="async">
+            </div>
+            <figcaption>A citation opens the source card. The timestamp is the check, not a decoration.</figcaption>
+          </figure>
+
+          <h3>Strict mode</h3>
+          <p>Strict mode answers only from the videos. Every claim needs a timestamped citation. A post-check verifies that the cited video and timestamp exist and that the quoted text appears in the cited chunk, with fuzzy matching. If retrieval is below threshold, the answer is “not covered in these videos.”</p>
+
+          <h3>Interpretive mode</h3>
+          <p>Interpretive mode lets the model reason, connect ideas, and add outside knowledge. The answer is labelled so you can tell what came from the videos and what did not.</p>
+
+          <h3>Questions worth trying</h3>
+          <ul class="quotes">
+            <li>“How does attention differ from a convolution?”</li>
+            <li>“Which parts of this explanation are simplified?”</li>
+            <li>“What does the speaker say is still unsolved?”</li>
+          </ul>
+
+          <p class="fineprint">Strict mode is enforced by structure, but no prompt can guarantee a model never strays. The UI says “strictly grounded,” not “guaranteed.”</p>
+        </section>
+
+        <section class="guide-section" id="sources">
+          <div class="guide-section__head"><span class="mono">07</span><h2>Sources and files</h2></div>
+          <p>The Sources panel holds documents the model can draft, edit through small patches, and refine. You can upload your own, download them, and restore earlier versions.</p>
+
+          <div class="guide-figure guide-figure--pair">
+            <figure data-reveal>
+              <div class="monitor monitor--small">
+                <div class="monitor__bar"><span>SOURCES</span><span>03 DOCUMENTS</span></div>
+                <img src="assets/img/sources-drawer.webp" width="390" height="844" alt="yt-gpt sources drawer on mobile with three markdown documents." loading="lazy" decoding="async">
+              </div>
+              <figcaption>Every save keeps a version.</figcaption>
+            </figure>
+            <figure data-reveal>
+              <div class="monitor monitor--small">
+                <div class="monitor__bar"><span>LIBRARY</span><span>MOBILE DRAWER</span></div>
+                <img src="assets/img/library-drawer.webp" width="390" height="844" alt="yt-gpt library drawer on mobile showing source statuses." loading="lazy" decoding="async">
+              </div>
+              <figcaption>The library stays reachable on a phone.</figcaption>
+            </figure>
+          </div>
+
+          <h3>Where it lives</h3>
+          <div class="cmd">
+            <div class="cmd__bar"><span>FILES</span><button class="copy" type="button" data-copy aria-label="Copy file layout">Copy</button></div>
+            <pre tabindex="0"><code>~/.yt-gpt/
+└── users/&lt;user_id&gt;/workspaces/xyz/
+    ├── transcripts.md
+    ├── videos/&lt;id&gt;/
+    │   ├── meta.json
+    │   ├── segments.jsonl
+    │   ├── clean.txt
+    │   └── chunks.jsonl
+    ├── sessions/
+    └── sources/</code></pre>
+          </div>
+
+          <p>Override the location with <code>YT_GPT_HOME</code>. There is no database. You can read, back up, or grep the whole workspace.</p>
+        </section>
+
+        <section class="guide-section" id="limits">
+          <div class="guide-section__head"><span class="mono">08</span><h2>Troubleshooting and limits</h2></div>
+          <div class="limits">
+            <div class="limit"><h3>A link stopped working.</h3><p>YouTube changed something, or the video is private. Run <code>yt-gpt doctor</code> and update <code>yt-dlp</code>.</p></div>
+            <div class="limit"><h3>The captions are wrong.</h3><p>Auto captions can be inaccurate at names and numbers. Prefer manual captions, or re-run Whisper if you installed it.</p></div>
+            <div class="limit"><h3>Whisper is slow.</h3><p>It runs on CPU by default. Use a smaller model, or keep the Whisper extra off for videos that already have captions.</p></div>
+            <div class="limit"><h3>Visuals do not appear.</h3><p>The selected model needs vision and tool calling. The UI hides visual tools when the model cannot use them.</p></div>
+            <div class="limit"><h3>Strict mode refused.</h3><p>Retrieval did not find enough evidence. Add the relevant video, ask a narrower question, or switch to interpretive mode.</p></div>
+            <div class="limit"><h3>Use it personally.</h3><p>Respect YouTube's Terms of Service and creators' rights. Do not redistribute downloaded content.</p></div>
+          </div>
+        </section>
+
+        <section class="guide-section" id="sketch">
+          <div class="guide-section__head"><span class="mono">09</span><h2>The first sketch</h2></div>
+          <p>The original flow diagram. The design refined it in two ways: the transcript step became a waterfall, and frame sampling became lazy and opt-in.</p>
+          <figure class="sketch" data-reveal>
+            <img src="assets/img/sketch.webp" width="1101" height="702" alt="Hand-drawn yt-gpt flow diagram showing a YouTube link, yt-dlp, captions or Whisper, frame sampling, and multimodal analysis." loading="lazy" decoding="async">
+            <figcaption>The sketch that started the project. Captions first, Whisper only as a fallback.</figcaption>
+          </figure>
+        </section>
+
+        <section class="guide-section" id="next">
+          <div class="guide-section__head"><span class="mono">10</span><h2>What ships next</h2></div>
+          <div class="roadmap">
+            <div class="roadmap__item"><span class="mono">MVP</span><h3>The core loop.</h3><p>Login, workspaces, caption ingestion, retrieval, streaming chat with citations, sessions.</p></div>
+            <div class="roadmap__item"><span class="mono">V1.0</span><h3>The full desk.</h3><p>Whisper fallback, Sources, visual pipeline, embeddings, caching and cost panel, release hardening.</p></div>
+            <div class="roadmap__item"><span class="mono">LATER</span><h3>The edges.</h3><p>Per-session video filters, workspace import and export, more source types, optional sync.</p></div>
+          </div>
+          <p class="guide__end">The package is in design. When it ships, this guide becomes the five minute tour. Until then, the commands and screenshots describe the intended experience.</p>
+          <a class="btn" href="index.html">
+            <span>Back to the desk</span>
+            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"></path></svg>
+          </a>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="site-foot__top">
+      <a class="brand brand--foot" href="index.html" aria-label="yt-gpt home">
+        <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+          <rect width="64" height="64" fill="currentColor"></rect>
+          <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+          <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+          <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+        </svg>
+        <span>yt-gpt</span>
+      </a>
+      <p>Local transcripts. Timecoded citations. Your model.</p>
+      <nav aria-label="Footer">
+        <a href="index.html#minute">The minute</a>
+        <a href="index.html#how">How it works</a>
+        <a href="index.html#evidence">Evidence</a>
+        <a href="guide.html">Setup</a>
+      </nav>
+    </div>
+    <div class="site-foot__bottom">
+      <span>STATUS: IN DESIGN / v0.1.0-DEV</span>
+      <span>Sample screenshots use demo data.</span>
+      <span>yt-gpt / 2026</span>
+    </div>
+  </footer>
+
+  <noscript>
+    <style>[data-reveal]{opacity:1!important;transform:none!important}.intro{display:none!important}</style>
+  </noscript>
+</body>
+</html>

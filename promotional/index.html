@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>yt-gpt: Ask the video. Get the minute.</title>
+  <meta name="description" content="A local, NotebookLM-style workspace for YouTube. Paste links, build clean transcripts, and chat with timestamped citations. Your model, your files.">
+  <meta name="theme-color" content="#f1f0e9">
+  <link rel="canonical" href="https://yt-gptt.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="yt-gpt: Ask the video. Get the minute.">
+  <meta property="og:description" content="A local workspace for YouTube. Clean transcripts, strict citations, and your own model.">
+  <meta property="og:url" content="https://yt-gptt.vercel.app/">
+  <meta property="og:image" content="https://yt-gptt.vercel.app/assets/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="yt-gpt: Ask the video. Get the minute.">
+  <meta name="twitter:description" content="A local workspace for YouTube. Clean transcripts, strict citations, and your own model.">
+  <meta name="twitter:image" content="https://yt-gptt.vercel.app/assets/img/og.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/supreme-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/supreme-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('motion')}</script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "yt-gpt",
+      "description": "A local, NotebookLM-style workspace for YouTube with clean transcripts and timestamped citations.",
+      "url": "https://yt-gptt.vercel.app/",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Windows, macOS, Linux",
+      "softwareVersion": "0.1.0-dev",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+  </script>
+  <script defer src="assets/vendor/gsap.min.js"></script>
+  <script defer src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script defer src="assets/vendor/lenis.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="intro" aria-hidden="true">
+    <div class="intro__brand">
+      <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+        <rect width="64" height="64" fill="currentColor"></rect>
+        <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+        <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+        <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+      </svg>
+      <span>yt-gpt</span>
+    </div>
+    <div class="intro__tc">00:00:00</div>
+    <div class="intro__track"><span></span></div>
+  </div>
+
+  <header class="site-head">
+    <a class="brand" href="index.html" aria-label="yt-gpt home">
+      <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+        <rect width="64" height="64" fill="currentColor"></rect>
+        <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+        <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+        <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+      </svg>
+      <span>yt-gpt</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#minute">The minute</a>
+      <a href="#how">How it works</a>
+      <a href="#evidence">Evidence</a>
+      <a href="guide.html">Setup</a>
+    </nav>
+    <p class="site-head__meta"><span class="pulse" aria-hidden="true"></span> LOCAL / 127.0.0.1</p>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <div class="section-kicker">
+          <span>00 / LOCAL RESEARCH DESK</span>
+          <span class="mono">00:00:00</span>
+        </div>
+        <h1 class="hero__title" id="hero-title">
+          <span class="hero__line"><span>Ask the video.</span></span>
+          <span class="hero__line"><span>Get the minute.</span></span>
+        </h1>
+        <div class="hero__foot">
+          <p class="hero__lede">Paste YouTube links. yt-gpt builds clean, searchable transcripts, then answers with citations you can play. Captions first. Your model. Your files.</p>
+          <div class="hero__actions">
+            <a class="btn" href="guide.html">
+              <span>Read the setup</span>
+              <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"></path></svg>
+            </a>
+            <a class="text-link" href="#evidence">See the evidence <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+      </div>
+
+      <figure class="hero__figure" data-reveal>
+        <div class="monitor">
+          <div class="monitor__bar"><span>SAMPLE WORKSPACE / STRICTLY GROUNDED</span><span>04 READY / 53.7K TOKENS</span></div>
+          <div class="monitor__screen">
+            <img src="assets/img/hero-citation.webp" width="780" height="630" alt="yt-gpt answer with inline timestamp citations and an open citation card showing the source quote." fetchpriority="high" decoding="async">
+          </div>
+          <span class="monitor__tag">DEMO DATA</span>
+        </div>
+        <figcaption>One workspace. Four sources. Every answer points back to a minute.</figcaption>
+      </figure>
+
+      <div class="hero__rail" aria-hidden="true">
+        <span class="hero__rail-label">00:00</span>
+        <div class="hero__rail-track"><span class="hero__rail-fill"></span><span class="hero__rail-dot"></span></div>
+        <span class="hero__rail-label">53:37</span>
+      </div>
+    </section>
+
+    <section class="minute" id="minute" aria-labelledby="minute-title" data-minute>
+      <div class="section-head">
+        <p class="section-kicker"><span>01 / THE MINUTE</span><span class="mono">05:41</span></p>
+        <div class="section-head__grid">
+          <h2 id="minute-title">A video is 58 minutes.<br>Your answer is 11 seconds.</h2>
+          <p>The transcript is the index. The timestamp is the proof. Scroll through three moments from the sample workspace.</p>
+        </div>
+      </div>
+
+      <div class="minute__body">
+        <div class="minute__stage" aria-hidden="true">
+          <div class="minute__top"><span>EVIDENCE / 01</span><span class="mono" data-minute-time>05:41</span></div>
+          <blockquote class="minute__quote" data-minute-quote>“Each token produces a query, a key and a value. The softmax over their dot products decides how much of each value to pull in.”</blockquote>
+          <p class="minute__source" data-minute-source>But what is a neural network? / manual captions</p>
+          <div class="minute__wave">
+            <svg viewBox="0 0 640 120" preserveAspectRatio="none" focusable="false">
+              <path class="minute__wave-line" d="M0 62 L52 62 L58 54 L64 68 L70 48 L76 72 L82 58 L90 62 L128 62 L134 52 L140 70 L146 44 L152 74 L158 58 L166 62 L210 62 L216 56 L222 66 L228 50 L234 70 L240 60 L248 62 L310 62 L316 48 L322 72 L328 40 L334 78 L340 56 L348 62 L410 62 L416 54 L422 66 L428 46 L434 74 L440 58 L448 62 L520 62 L526 50 L532 70 L538 44 L544 74 L550 56 L558 62 L640 62"></path>
+            </svg>
+            <span class="minute__dot" data-minute-dot></span>
+          </div>
+          <div class="minute__scale"><span>00:00</span><span>19:00</span></div>
+          <div class="minute__progress"><span data-minute-progress></span></div>
+        </div>
+
+        <div class="minute__chapters">
+          <article class="chapter" data-time="05:41" data-quote="Each token produces a query, a key and a value. The softmax over their dot products decides how much of each value to pull in." data-source="But what is a neural network? / manual captions">
+            <div class="chapter__meta"><span>01 / ROUTING</span><span class="mono">05:41</span></div>
+            <h3>Attention is a routing step.</h3>
+            <p>Each token asks a question, offers a key, and carries a value. The answer is not a lookup. It is a weighted mix of the earlier positions that matter for this one.</p>
+            <p class="chapter__cite"><span class="cite-mark" aria-hidden="true"></span> But what is a neural network? / manual captions</p>
+          </article>
+
+          <article class="chapter" data-time="12:41" data-quote="Two details keep it stable: the dot products are scaled before the softmax, and each block has a residual connection around it." data-source="But what is a neural network? / manual captions">
+            <div class="chapter__meta"><span>02 / STABILITY</span><span class="mono">12:41</span></div>
+            <h3>Two details keep it stable.</h3>
+            <p>The dot products are scaled before the softmax. Each block also keeps a residual connection around it. Without those choices, deep stacks become difficult to train.</p>
+            <p class="chapter__cite"><span class="cite-mark" aria-hidden="true"></span> But what is a neural network? / manual captions</p>
+          </article>
+
+          <article class="chapter" data-time="43:21" data-quote="Attention compares every position with every other position, so it grows quadratically with sequence length." data-source="Attention is all you need, model explanation / auto captions">
+            <div class="chapter__meta"><span>03 / COST</span><span class="mono">43:21</span></div>
+            <h3>The cost is the trade.</h3>
+            <p>A convolution has a fixed neighborhood. Attention compares every position with every other position, so it grows quadratically with sequence length. Long context work is mostly about making attention cheaper.</p>
+            <p class="chapter__cite"><span class="cite-mark" aria-hidden="true"></span> Attention is all you need, model explanation / auto captions</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how" aria-labelledby="how-title">
+      <div class="section-head">
+        <p class="section-kicker"><span>02 / THE PIPELINE</span><span class="mono">LINKS IN</span></p>
+        <div class="section-head__grid">
+          <h2 id="how-title">Links in.<br>Evidence out.</h2>
+          <p>No database. No transcription bill unless a video has no captions. One bad link never blocks the batch.</p>
+        </div>
+      </div>
+
+      <div class="how__body">
+        <figure class="how__figure" data-reveal>
+          <div class="monitor monitor--flat">
+            <div class="monitor__bar"><span>SAMPLE WORKSPACE</span><span>READY 04 / FAILED 01</span></div>
+            <img src="assets/img/workspace.webp" width="1440" height="900" alt="The yt-gpt workspace with four ready sources and one failed private video in the library." loading="lazy" decoding="async">
+          </div>
+          <figcaption>Sample workspace. The failed source is isolated; the other four keep working.</figcaption>
+        </figure>
+
+        <ol class="steps">
+          <li class="step" data-reveal>
+            <span class="step__num">01</span>
+            <div><h3>Paste the links.</h3><p>Videos and playlists, one per line. The batch moves link by link, with a clear status for each one.</p></div>
+            <span class="step__tc">00:00</span>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__num">02</span>
+            <div><h3>Captions first.</h3><p>Manual or auto captions are fetched and cleaned. Whisper runs only when a video has none.</p></div>
+            <span class="step__tc">00:19</span>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__num">03</span>
+            <div><h3>Retrieve the minutes.</h3><p>Chunks are ranked per question. Full context is used only when it fits the model's window.</p></div>
+            <span class="step__tc">05:41</span>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__num">04</span>
+            <div><h3>Answer with citations.</h3><p>Every claim points to a video and a timestamp. Strict mode verifies the cited text before it ships.</p></div>
+            <span class="step__tc">11:41</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="evidence" id="evidence" aria-labelledby="evidence-title">
+      <div class="section-head">
+        <p class="section-kicker"><span>03 / THE EVIDENCE</span><span class="mono">05:41</span></p>
+        <div class="section-head__grid">
+          <h2 id="evidence-title">Every claim gets a minute.</h2>
+          <p>Strict mode requires timestamped citations and checks them against the transcript. If the library does not cover it, the answer says so.</p>
+        </div>
+      </div>
+
+      <figure class="evidence__hero" data-reveal>
+        <div class="monitor monitor--evidence">
+          <div class="monitor__bar"><span>CITATION TRACE / HOVER OR FOCUS</span><span>05:41 / SOURCE 01</span></div>
+          <div class="monitor__screen">
+            <img src="assets/img/citation.webp" width="1440" height="900" alt="yt-gpt answer with a timestamped citation chip open, showing the source card for a neural network video." loading="lazy" decoding="async">
+          </div>
+          <span class="monitor__tag">DEMO DATA</span>
+        </div>
+        <figcaption>A citation chip opens the source card without leaving the answer.</figcaption>
+      </figure>
+
+      <div class="evidence__grid">
+        <figure data-reveal>
+          <div class="monitor monitor--small">
+            <div class="monitor__bar"><span>TRANSCRIPT</span><span>MANUAL CAPTIONS</span></div>
+            <img src="assets/img/transcript.webp" width="1440" height="900" alt="yt-gpt transcript page with timecoded segments, video list, and phrase search." loading="lazy" decoding="async">
+          </div>
+          <figcaption>Every segment keeps its timecode and source type.</figcaption>
+        </figure>
+        <figure data-reveal>
+          <div class="monitor monitor--small">
+            <div class="monitor__bar"><span>ANSWER</span><span>STRICTLY GROUNDED</span></div>
+            <img src="assets/img/answer.webp" width="1440" height="900" alt="yt-gpt strict answer comparing attention with convolution, with four timestamped citations." loading="lazy" decoding="async">
+          </div>
+          <figcaption>Strict mode answers from the library, not the open web.</figcaption>
+        </figure>
+        <figure data-reveal>
+          <div class="monitor monitor--small monitor--phone">
+            <div class="monitor__bar"><span>MOBILE</span><span>390 PX</span></div>
+            <img src="assets/img/workspace-mobile.webp" width="390" height="844" alt="yt-gpt mobile workspace with a cited answer and the session controls." loading="lazy" decoding="async">
+          </div>
+          <figcaption>The same citations and drawer controls on a phone.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="rules" id="rules" aria-labelledby="rules-title">
+      <div class="rules__inner">
+        <p class="section-kicker section-kicker--dark"><span>04 / THE RULES</span><span class="mono">SESSION 03</span></p>
+        <div class="rules__head">
+          <h2 id="rules-title">Strict is a structure.<br>Not a promise.</h2>
+          <p>Strict mode is enforced by required citations, a verification pass, and refusal when retrieval finds nothing. The interface says “strictly grounded,” not “guaranteed.”</p>
+        </div>
+
+        <div class="rules__body">
+          <div class="rules__copy">
+            <p>Interpretive mode is a different contract. The model can reason, connect ideas, and bring outside knowledge, and the answer is labelled as such.</p>
+
+            <div class="cite-demo">
+              <p class="cite-demo__label">TRY THE CITATION</p>
+              <div class="cite-demo__row">
+                <button class="cite" type="button" aria-expanded="false" aria-controls="cite-card" aria-describedby="cite-card">05:41 <span>01</span></button>
+                <span class="cite-demo__hint">Hover or focus the chip</span>
+              </div>
+              <div class="cite-card" id="cite-card" role="tooltip">
+                <div class="cite-card__top"><span>05:41</span><span>SOURCE</span></div>
+                <strong>But what is a neural network?</strong>
+                <p>The query says what this token is looking for. The key says what another token offers.</p>
+                <span class="cite-card__link">OPEN ON YOUTUBE ↗</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-card">
+            <div class="rule-card__bar"><span>SESSION / GROUNDING</span><span>03</span></div>
+            <div class="rule-card__row"><span>Strict</span><span class="chip chip--on">ON</span></div>
+            <div class="rule-card__row"><span>Citations required</span><span class="chip">YES</span></div>
+            <div class="rule-card__row"><span>Verify cited text</span><span class="chip">YES</span></div>
+            <div class="rule-card__row"><span>Refuse when empty</span><span class="chip">YES</span></div>
+            <div class="rule-card__row"><span>Outside knowledge</span><span class="chip">NO</span></div>
+            <div class="rule-card__note">Model: gpt-4.1-mini. Provider and model are per session.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="local" id="local" aria-labelledby="local-title">
+      <div class="section-head">
+        <p class="section-kicker"><span>05 / THE LOCAL PART</span><span class="mono">127.0.0.1</span></p>
+        <div class="section-head__grid">
+          <h2 id="local-title">Your files. Your model.<br>Your machine.</h2>
+          <p>The server binds to 127.0.0.1. Workspaces are plain folders. API keys stay in the OS keyring where available. No telemetry by default.</p>
+        </div>
+      </div>
+
+      <div class="local__body">
+        <div class="filetree" data-reveal>
+          <div class="filetree__bar"><span>LOCAL STORAGE</span><span>PLAIN FOLDERS</span></div>
+          <pre tabindex="0"><code>~/.yt-gpt/users/you/workspaces/attention/
+├── transcripts.md
+├── videos/
+│   └── but-what-is-a-neural-network/
+│       ├── meta.json
+│       ├── segments.jsonl
+│       ├── clean.txt
+│       └── chunks.jsonl
+├── sessions/
+└── sources/</code></pre>
+          <div class="filetree__foot"><span>NO DATABASE</span><span>BACK UP OR GREP</span></div>
+        </div>
+
+        <div class="local__notes">
+          <div class="note" data-reveal><span class="note__num">01</span><div><h3>Captions first.</h3><p>Manual or auto captions are cleaned and reused. Whisper runs only when none exist.</p></div></div>
+          <div class="note" data-reveal><span class="note__num">02</span><div><h3>Bring your own model.</h3><p>Any OpenAI-compatible endpoint works, including Ollama and local models.</p></div></div>
+          <div class="note" data-reveal><span class="note__num">03</span><div><h3>Only what a question needs.</h3><p>Retrieval sends the relevant chunks, not the whole library. Visuals stay off until asked.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="setup" id="setup" aria-labelledby="setup-title">
+      <div class="setup__body">
+        <div class="setup__copy">
+          <p class="section-kicker"><span>06 / THE SETUP</span><span class="mono">127.0.0.1</span></p>
+          <h2 id="setup-title">Two commands.<br>Then a workspace.</h2>
+          <p>Install the core package, start the local server, and open the browser. Add Whisper or local embeddings only if you need them.</p>
+          <a class="btn" href="guide.html">
+            <span>Read the full setup</span>
+            <svg viewBox="0 0 20 20" focusable="false" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"></path></svg>
+          </a>
+          <p class="setup__note">Status: in design. The package is not released yet. The commands describe the intended experience.</p>
+        </div>
+
+        <div class="terminal" data-reveal>
+          <div class="terminal__bar"><span>TERMINAL</span><span>LOCAL</span></div>
+          <pre tabindex="0"><code><span class="terminal__prompt">$</span> pip install yt-gpt
+<span class="terminal__prompt">$</span> yt-gpt serve
+<span class="terminal__out">→ http://127.0.0.1:8765</span></code></pre>
+          <div class="terminal__foot"><span>CAPTIONS FIRST</span><span>NO TELEMETRY</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <div class="site-foot__top">
+      <a class="brand brand--foot" href="index.html" aria-label="yt-gpt home">
+        <svg class="brand__mark" viewBox="0 0 64 64" focusable="false" aria-hidden="true">
+          <rect width="64" height="64" fill="currentColor"></rect>
+          <rect x="12" y="12" width="40" height="40" fill="none" stroke="#f1f0e9" stroke-width="4"></rect>
+          <rect x="37" y="37" width="9" height="9" fill="#d8401a"></rect>
+          <path d="M21 37h12M21 21v22" stroke="#f1f0e9" stroke-width="4" fill="none"></path>
+        </svg>
+        <span>yt-gpt</span>
+      </a>
+      <p>Local transcripts. Timecoded citations. Your model.</p>
+      <nav aria-label="Footer">
+        <a href="#minute">The minute</a>
+        <a href="#how">How it works</a>
+        <a href="#evidence">Evidence</a>
+        <a href="guide.html">Setup</a>
+      </nav>
+    </div>
+    <div class="site-foot__bottom">
+      <span>STATUS: IN DESIGN / v0.1.0-DEV</span>
+      <span>Sample screenshots use demo data.</span>
+      <span>yt-gpt / 2026</span>
+    </div>
+  </footer>
+
+  <noscript>
+    <style>[data-reveal]{opacity:1!important;transform:none!important}.intro{display:none!important}</style>
+  </noscript>
+</body>
+</html>
