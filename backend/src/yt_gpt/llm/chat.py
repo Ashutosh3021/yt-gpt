@@ -12,8 +12,8 @@ from ..retrieval.hybrid import Retriever
 from ..util import parse_seconds, truncate
 from ..workspace.store import WorkspaceStore
 from .context import build_messages
-from .provider import LlmConfig, LlmError, complete, stream_chat
-from .tools import ToolContext, execute_tool, tool_definitions
+from .provider import LlmConfig, LlmError, complete, embed_texts, stream_chat
+from .tools import ToolContext, ToolResult, execute_tool, tool_definitions
 
 log = logging.getLogger(__name__)
 
@@ -64,6 +64,7 @@ def _tool_context(
     session: dict[str, Any],
     retriever: Retriever,
     config: LlmConfig,
+    visuals: bool,
 ) -> ToolContext:
     return ToolContext(
         store=store,
@@ -72,6 +73,7 @@ def _tool_context(
         session=session,
         retriever=retriever,
         config=config,
+        visuals=visuals,
     )
 
 
@@ -84,7 +86,13 @@ async def run_chat(
     query: str,
     config: LlmConfig,
 ) -> AsyncIterator[dict[str, Any]]:
-    retriever = Retriever.from_store(store, ws_dir)
+    retriever = Retriever.from_store(store, ws_dir, config.embedding_model or None)
+    if retriever.has_dense:
+        try:
+            query_vectors = await embed_texts(config, [query])
+            retriever.set_query_vector(query_vectors[0] if query_vectors else None)
+        except LlmError as exc:
+            log.warning("Query embedding failed; using keyword search only: %s", exc)
     messages, _chunks, _full = build_messages(
         store=store,
         ws_dir=ws_dir,
@@ -95,8 +103,15 @@ async def run_chat(
         retriever=retriever,
     )
     capabilities = config.capabilities
-    tools = tool_definitions() if capabilities.get("tools") else []
-    context = _tool_context(store, ws_dir, workspace, session, retriever, config)
+    workspace_settings = workspace.get("settings") if isinstance(workspace.get("settings"), dict) else {}
+    session_settings = session.get("settings") if isinstance(session.get("settings"), dict) else {}
+    visuals = bool(
+        workspace_settings.get("useVisuals")
+        and session_settings.get("useVisuals")
+        and capabilities.get("vision")
+    )
+    tools = tool_definitions(visuals=visuals) if capabilities.get("tools") else []
+    context = _tool_context(store, ws_dir, workspace, session, retriever, config, visuals)
 
     answer_parts: list[str] = []
     for round_index in range(MAX_TOOL_ROUNDS + 1):
@@ -113,7 +128,8 @@ async def run_chat(
         if not tool_calls:
             break
         if round_index >= MAX_TOOL_ROUNDS:
-            messages.append({"role": "assistant", "content": assistant_text or None})
+            if assistant_text:
+                messages.append({"role": "assistant", "content": assistant_text})
             messages.append(
                 {
                     "role": "user",
@@ -126,14 +142,29 @@ async def run_chat(
                 yield {"type": "token", "text": final}
             break
 
-        messages.append({"role": "assistant", "content": assistant_text or None, "tool_calls": tool_calls})
+        messages.append({"role": "assistant", "content": assistant_text or "", "tool_calls": tool_calls})
         for index, call in enumerate(tool_calls):
             function = call.get("function") if isinstance(call, dict) else None
             name = str((function or {}).get("name") or "")
             arguments = _parse_arguments(str((function or {}).get("arguments") or "{}"))
             call_id = str(call.get("id") or f"call_{round_index}_{index}")
             result = await execute_tool(name, arguments, context)
-            messages.append({"role": "tool", "tool_call_id": call_id, "name": name, "content": result})
+            if isinstance(result, ToolResult):
+                messages.append({"role": "tool", "tool_call_id": call_id, "content": result.text})
+                if result.images:
+                    parts: list[dict[str, Any]] = [
+                        {
+                            "type": "text",
+                            "text": f"Image returned by {name}. Inspect it for visual evidence.",
+                        }
+                    ]
+                    parts.extend(
+                        {"type": "image_url", "image_url": {"url": image}}
+                        for image in result.images
+                    )
+                    messages.append({"role": "user", "content": parts})
+            else:
+                messages.append({"role": "tool", "tool_call_id": call_id, "content": result})
 
     content = "\n\n".join(part.strip() for part in answer_parts if part.strip()).strip()
     citations = filter_citations(extract_citations(content), workspace)

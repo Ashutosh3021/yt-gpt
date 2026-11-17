@@ -37,6 +37,23 @@ def litellm_model(provider: str, model: str) -> str:
     return model
 
 
+def litellm_embedding_model(provider: str, model: str) -> str:
+    model = (model or "").strip()
+    if not model:
+        raise LlmError("Choose an embedding model in Settings.")
+    if provider == "anthropic":
+        raise LlmError("Anthropic does not provide a text embedding endpoint. Pick another provider for embeddings.")
+    if provider == "google":
+        return model if model.startswith(("gemini/", "vertex_ai/")) else f"gemini/{model}"
+    if provider == "openrouter":
+        return model if model.startswith("openrouter/") else f"openrouter/{model}"
+    if provider == "ollama":
+        return model if model.startswith("ollama/") else f"ollama/{model}"
+    if provider == "custom":
+        return model if model.startswith("openai/") else f"openai/{model}"
+    return model
+
+
 def friendly_error(exc: BaseException) -> str:
     text = str(exc) or exc.__class__.__name__
     lower = text.lower()
@@ -90,7 +107,10 @@ class LlmConfig:
         elif self.provider in {"ollama", "custom"}:
             kwargs["api_key"] = "not-needed"
         if self.provider in {"openai", "openrouter", "ollama", "custom"} and self.base_url:
-            kwargs["api_base"] = self.base_url.rstrip("/")
+            base = self.base_url.rstrip("/")
+            if self.provider == "ollama" and base.endswith("/v1"):
+                base = base[:-3]
+            kwargs["api_base"] = base
         return kwargs
 
 
@@ -206,6 +226,34 @@ async def complete(
     except Exception as exc:  # pragma: no cover - defensive
         raise LlmError("The provider returned an unexpected response.") from exc
     return content if isinstance(content, str) else ""
+
+
+async def embed_texts(config: LlmConfig, texts: list[str], *, batch_size: int = 32) -> list[list[float]]:
+    if not texts:
+        return []
+    module = _require()
+    kwargs = config.litellm_kwargs()
+    kwargs["model"] = litellm_embedding_model(config.provider, config.embedding_model)
+    vectors: list[list[float]] = []
+    for offset in range(0, len(texts), max(1, batch_size)):
+        batch = [text or " " for text in texts[offset : offset + batch_size]]
+        try:
+            response = await module.aembedding(input=batch, **kwargs)
+        except Exception as exc:
+            raise LlmError(friendly_error(exc)) from exc
+        rows = getattr(response, "data", None)
+        if rows is None and isinstance(response, dict):
+            rows = response.get("data")
+        if not isinstance(rows, list) or len(rows) != len(batch):
+            raise LlmError("The embedding provider returned an unexpected response.")
+        for row in rows:
+            value = getattr(row, "embedding", None)
+            if value is None and isinstance(row, dict):
+                value = row.get("embedding")
+            if not isinstance(value, list) or not value:
+                raise LlmError("The embedding provider returned an empty vector.")
+            vectors.append([float(number) for number in value])
+    return vectors
 
 
 async def test_connection(config: LlmConfig) -> tuple[bool, str]:

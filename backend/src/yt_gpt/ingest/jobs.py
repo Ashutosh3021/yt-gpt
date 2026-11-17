@@ -9,6 +9,8 @@ from typing import Any
 
 from .. import config
 from ..events import EventBus
+from ..llm.embeddings import ensure_video_embeddings
+from ..llm.provider import LlmConfig
 from ..util import estimate_tokens, read_json
 from ..workspace.store import NotFound, WorkspaceStore
 from . import whisper
@@ -149,6 +151,16 @@ class IngestRunner:
         except Exception:
             log.exception("Could not mark %s/%s as failed", ws_dir, video_id)
 
+    async def _embed(self, user_id: str, ws_dir: Path, video_id: str) -> None:
+        try:
+            config = LlmConfig.for_user(user_id)
+            if not config.embedding_model:
+                return
+            store = WorkspaceStore(user_id)
+            await ensure_video_embeddings(store, ws_dir, video_id, config)
+        except Exception as exc:
+            log.warning("Could not build embeddings for %s: %s", video_id, exc)
+
     async def _process(self, user_id: str, ws_dir: Path, video_id: str) -> None:
         store = WorkspaceStore(user_id)
         try:
@@ -215,6 +227,7 @@ class IngestRunner:
             store.write_chunks(ws_dir, video_id, chunks)
             store.write_transcripts(ws_dir)
             store.touch_workspace(ws_dir)
+            await self._embed(user_id, ws_dir, video_id)
 
             self._status(
                 store,

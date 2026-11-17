@@ -19,8 +19,12 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/yt-gpt
     env:
       VERSION: ${{ inputs.version }}
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -76,14 +80,14 @@ jobs:
           python -m build
 
       - name: Publish with trusted publishing
-        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        if: ${{ env.PYPI_API_TOKEN == '' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: backend/dist/
 
       - name: Publish with API token
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: ${{ env.PYPI_API_TOKEN != '' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: backend/dist/
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          password: ${{ env.PYPI_API_TOKEN }}

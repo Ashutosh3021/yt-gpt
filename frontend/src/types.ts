@@ -152,6 +152,10 @@ export interface Api {
     get(id: string): Promise<Workspace>;
     create(name: string): Promise<Workspace>;
     rename(id: string, name: string): Promise<Workspace>;
+    updateSettings(
+      id: string,
+      settings: Partial<Workspace['settings']>,
+    ): Promise<Workspace>;
     remove(id: string): Promise<void>;
   };
   videos: {

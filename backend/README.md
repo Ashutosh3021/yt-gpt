@@ -23,16 +23,16 @@ src/yt_gpt/
 ├── ingest/             # URL normalisation, yt-dlp, captions, cleaning, chunking, jobs
 ├── retrieval/          # BM25 index (always on) + RRF helper
 ├── llm/                # LiteLLM wrapper, capabilities, prompts, context, chat, tools
-├── vision/             # optional scene detection / contact sheets / frames
-└── sources/            # document store + find/replace patch helper
+├── vision/             # reserved for optional scene detection / frames
+└── sources/            # reserved namespace; sources are stored by workspace/store.py
 ```
 
 ## Data
 
 Everything lives under `~/.yt-gpt` (override with `YT_GPT_HOME`). There is no
 database. `segments.jsonl` and `meta.json` are the source of truth; `clean.txt`,
-`chunks.jsonl`, `summary.md` and `transcripts.md` are derived and can be rebuilt
-with `yt-gpt doctor --rebuild`.
+`chunks.jsonl` and `transcripts.md` are derived and can be rebuilt with
+`yt-gpt doctor --rebuild`.
 
 API keys are stored in the OS keyring. If no keyring backend is available, a
 `0600` file under `~/.yt-gpt/secrets/` is used instead.
@@ -43,6 +43,7 @@ API keys are stored in the OS keyring. If no keyring backend is available, a
 pip install -e ".[dev]"
 pytest
 ruff check src tests
+mypy src
 ```
 
 To run against the Vite dev server, build the frontend with
@@ -63,5 +64,7 @@ add a `PYPI_API_TOKEN` repository secret as a fallback).
 - The server binds to `127.0.0.1` by default. Use `--host` only when you know
   what you are doing.
 - Whisper is optional: `pip install "yt-gpt[whisper]"`.
-- Visual tooling is optional in practice: the workspace/session toggles default
-  to off, and text-only workspaces never download video.
+- This release is text-only. Visual analysis is not wired yet; the workspace and
+  session toggles default to off, and text-only workspaces never download video.
+- Retrieval is BM25-only. Dense embeddings are planned but not implemented.
+- License: MIT (see `LICENSE`).

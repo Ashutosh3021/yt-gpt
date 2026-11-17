@@ -1,4 +1,4 @@
-from yt_gpt.workspace.store import NotFound, WorkspaceStore
+from yt_gpt.workspace.store import NotFound, StoreError, WorkspaceStore
 
 SEGMENTS = [
     {"start": 0.0, "end": 3.0, "text": "First sentence about attention."},
@@ -33,6 +33,27 @@ def test_workspace_video_lifecycle(home):
     assert store.get_workspace(workspace["id"])["videos"] == []
 
 
+def test_vector_roundtrip_and_dense_chunks(home):
+    store = WorkspaceStore("u_test")
+    workspace = store.create_workspace("Vectors")
+    ws_dir = store.resolve(workspace["id"])
+    store.add_video(ws_dir, "dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    store.write_segments(ws_dir, "dQw4w9WgXcQ", SEGMENTS)
+    store.rebuild_derived(ws_dir)
+    chunks = store.read_chunks(ws_dir, "dQw4w9WgXcQ")
+    store.write_vectors(ws_dir, "dQw4w9WgXcQ", [[1.0, 0.0] for _ in chunks], "test-embed")
+
+    vectors, meta = store.read_vectors(ws_dir, "dQw4w9WgXcQ")
+    assert vectors is not None
+    assert vectors.shape == (len(chunks), 2)
+    assert meta["model"] == "test-embed"
+
+    dense_chunks, matrix = store.load_dense_chunks(ws_dir, "test-embed")
+    assert len(dense_chunks) == len(chunks)
+    assert matrix is not None and matrix.shape[0] == len(chunks)
+    assert store.load_dense_chunks(ws_dir, "other-model") == ([], None)
+
+
 def test_source_versions_and_restore(home):
     store = WorkspaceStore("u_test")
     workspace = store.create_workspace("Docs")
@@ -55,6 +76,13 @@ def test_source_versions_and_restore(home):
         pass
     else:
         raise AssertionError("source should be gone")
+
+    try:
+        store.create_source(ws_dir, "huge.md", "x" * 2_000_001)
+    except StoreError:
+        pass
+    else:
+        raise AssertionError("oversized source should be rejected")
 
 
 def test_sessions_and_rename(home):

@@ -43,6 +43,25 @@ def test_search_can_filter_by_video():
     assert [result["video_id"] for result in results] == ["videoC"]
 
 
+def test_dense_vector_search_and_filter():
+    chunks = [
+        {"id": "a:0", "video_id": "videoA", "start": 0, "end": 30, "text": "alpha"},
+        {"id": "b:0", "video_id": "videoB", "start": 0, "end": 30, "text": "beta"},
+    ]
+    retriever = Retriever(
+        chunks,
+        dense_chunks=chunks,
+        dense_vectors=[[1.0, 0.0], [0.0, 1.0]],
+        dense_model="test-embed",
+    )
+    assert retriever.has_dense
+    retriever.set_query_vector([0.0, 1.0])
+    results = retriever.search("nothing-matches", k=2)
+    assert results[0]["id"] == "b:0"
+    filtered = retriever.search("nothing-matches", k=2, video_ids={"videoA"})
+    assert [item["id"] for item in filtered] == ["a:0"]
+
+
 def test_retriever_and_rrf():
     retriever = Retriever(DOCUMENTS)
     keyword = retriever.search("convolutional filters", k=2)

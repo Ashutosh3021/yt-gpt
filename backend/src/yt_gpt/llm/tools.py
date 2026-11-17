@@ -1,17 +1,25 @@
-"""LLM tools limited to transcripts, frames and the Sources folder."""
+"""LLM tools for transcripts, Sources and optional video frames."""
 
 from __future__ import annotations
 
+import asyncio
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from ..retrieval.hybrid import Retriever
 from ..util import format_seconds, parse_seconds, truncate
+from ..vision.frames import VisualError, contact_sheet, frame_at, image_data_url
 from ..workspace.store import Conflict, NotFound, StoreError, WorkspaceStore
 
 MAX_RANGE_SECONDS = 180
 MAX_RANGE_TOKENS = 4000
+
+
+@dataclass(slots=True)
+class ToolResult:
+    text: str
+    images: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -22,9 +30,10 @@ class ToolContext:
     session: dict[str, Any]
     retriever: Retriever
     config: Any
+    visuals: bool = False
 
 
-def tool_definitions() -> list[dict[str, Any]]:
+def tool_definitions(*, visuals: bool = False) -> list[dict[str, Any]]:
     tools: list[dict[str, Any]] = [
         {
             "type": "function",
@@ -115,6 +124,53 @@ def tool_definitions() -> list[dict[str, Any]]:
             },
         },
     ]
+    if visuals:
+        tools.extend(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_contact_sheet",
+                        "description": (
+                            "Return a timestamped contact sheet of video frames. Use this to inspect "
+                            "slides, charts, demonstrations or visual context before answering."
+                        ),
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "video_id": {"type": "string"},
+                                "index": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 3,
+                                    "description": "Zero-based contact sheet index.",
+                                },
+                                "refresh": {"type": "boolean"},
+                            },
+                            "required": ["video_id"],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_frame",
+                        "description": (
+                            "Return a high-resolution frame near an exact timestamp when a detail "
+                            "is too small on the contact sheet."
+                        ),
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "video_id": {"type": "string"},
+                                "start": {"type": "string", "description": "mm:ss or seconds"},
+                            },
+                            "required": ["video_id", "start"],
+                        },
+                    },
+                },
+            ]
+        )
     return tools
 
 
@@ -132,7 +188,7 @@ def _chunk_payload(chunk: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -> str:
+async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -> str | ToolResult:
     try:
         if name == "search_transcripts":
             query = str(arguments.get("query") or "").strip()
@@ -163,6 +219,43 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
             while sum(len(str(item["text"])) for item in picked) // 4 > MAX_RANGE_TOKENS and picked:
                 picked.pop()
             return _json({"video_id": video_id, "start": start, "end": end, "segments": picked})
+
+        if name in {"get_contact_sheet", "get_frame"}:
+            if not ctx.visuals:
+                return _json({"error": "Visual tools are disabled for this workspace or chat."})
+            video_id = str(arguments.get("video_id") or "")
+            if name == "get_contact_sheet":
+                index = int(arguments.get("index") or 0)
+                refresh = bool(arguments.get("refresh") or False)
+                sheet = await asyncio.to_thread(
+                    contact_sheet, ctx.store, ctx.ws_dir, video_id, index, refresh=refresh
+                )
+                frames = sheet["sheet"].get("frames") or []
+                text = _json(
+                    {
+                        "video_id": video_id,
+                        "sheet": sheet["index"],
+                        "sheet_count": sheet["sheet_count"],
+                        "timestamps": [frame.get("label") for frame in frames],
+                        "citation_hint": f"[{video_id} @ {frames[0].get('label')}]"
+                        if frames
+                        else "",
+                        "note": "Frames are sampled from the video; use get_frame for exact detail.",
+                    }
+                )
+                return ToolResult(text, [image_data_url(sheet["path"])])
+            start = parse_seconds(arguments.get("start", 0))
+            moment = await asyncio.to_thread(frame_at, ctx.store, ctx.ws_dir, video_id, start)
+            label = format_seconds(float(moment["start"]))
+            text = _json(
+                {
+                    "video_id": video_id,
+                    "start": label,
+                    "citation": f"[{video_id} @ {label}]",
+                    "low_resolution": moment["low_resolution"],
+                }
+            )
+            return ToolResult(text, [image_data_url(moment["path"])])
 
         if name == "list_videos":
             return _json(
@@ -218,5 +311,5 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
             return _json({"patched": result["name"], "updatedAt": result["updatedAt"]})
 
         return _json({"error": f"unknown tool: {name}"})
-    except (NotFound, Conflict, StoreError, ValueError) as exc:
+    except (NotFound, Conflict, StoreError, VisualError, ValueError) as exc:
         return _json({"error": str(exc)})

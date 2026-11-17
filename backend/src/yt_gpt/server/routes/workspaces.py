@@ -38,11 +38,19 @@ async def get_workspace(resolved: WorkspacePath) -> dict[str, Any]:
 
 
 @router.patch("/{workspace_id}")
-async def rename_workspace(body: WorkspacePatchBody, resolved: WorkspacePath) -> dict[str, Any]:
+async def update_workspace(body: WorkspacePatchBody, resolved: WorkspacePath) -> dict[str, Any]:
     store, ws_dir = resolved
     try:
         data = store._read_workspace_json(ws_dir)
-        return store.rename_workspace(str(data.get("id") or ws_dir.name), body.name)
+        ws_id = str(data.get("id") or ws_dir.name)
+        if body.name is not None:
+            data = store.rename_workspace(ws_id, body.name)
+            ws_dir = store.resolve(str(data.get("id") or ws_id))
+        if body.settings is not None:
+            data = store.update_workspace_settings(
+                ws_id, body.settings.model_dump(exclude_none=True)
+            )
+        return data
     except StoreError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 

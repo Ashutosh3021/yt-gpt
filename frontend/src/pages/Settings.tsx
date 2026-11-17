@@ -224,7 +224,7 @@ export function SettingsPage() {
                     <Field
                       label="Embedding model"
                       htmlFor="settings-embedding"
-                      hint="Used for retrieval over transcripts"
+                      hint="Reserved for the planned embedding index; BM25 is used today"
                     >
                       <input
                         id="settings-embedding"

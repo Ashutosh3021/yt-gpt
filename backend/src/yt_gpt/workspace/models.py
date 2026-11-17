@@ -32,12 +32,18 @@ class WorkspaceCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=80)
 
 
+class WorkspaceSettingsPatch(BaseModel):
+    useVisuals: bool | None = None
+    summarize: bool | None = None
+
+
 class WorkspacePatchBody(BaseModel):
-    name: str = Field(min_length=1, max_length=80)
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    settings: WorkspaceSettingsPatch | None = None
 
 
 class LinksBody(BaseModel):
-    links: str = Field(default="")
+    links: str = Field(default="", max_length=100_000)
 
 
 class SessionCreateBody(BaseModel):
@@ -47,8 +53,8 @@ class SessionCreateBody(BaseModel):
 class SessionSettingsPatch(BaseModel):
     grounding: Grounding | None = None
     personaId: PersonaId | None = None
-    personaPrompt: str | None = None
-    modelOverride: str | None = None
+    personaPrompt: str | None = Field(default=None, max_length=4_000)
+    modelOverride: str | None = Field(default=None, max_length=200)
     useVisuals: bool | None = None
 
 
@@ -58,22 +64,22 @@ class SessionPatchBody(BaseModel):
 
 
 class ChatBody(BaseModel):
-    content: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=20_000)
 
 
 class SourceCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=200)
-    content: str | None = None
+    content: str | None = Field(default=None, max_length=2_000_000)
 
 
 class SourceUpdateBody(BaseModel):
-    content: str = Field(default="")
+    content: str = Field(default="", max_length=2_000_000)
     note: str | None = Field(default=None, max_length=200)
 
 
 class LlmPatchBody(BaseModel):
     provider: Literal["openai", "anthropic", "google", "openrouter", "ollama", "custom"] | None = None
-    baseUrl: str | None = None
-    model: str | None = None
-    embeddingModel: str | None = None
-    apiKey: str | None = None
+    baseUrl: str | None = Field(default=None, max_length=500)
+    model: str | None = Field(default=None, max_length=200)
+    embeddingModel: str | None = Field(default=None, max_length=200)
+    apiKey: str | None = Field(default=None, max_length=4_096)

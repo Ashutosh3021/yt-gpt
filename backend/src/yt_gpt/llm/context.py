@@ -116,6 +116,17 @@ def build_messages(
         sources=sources,
         rolling_summary=str(session.get("rollingSummary") or ""),
     )
+    workspace_settings = workspace.get("settings") if isinstance(workspace.get("settings"), dict) else {}
+    if (
+        workspace_settings.get("useVisuals")
+        and settings.get("useVisuals")
+        and (config.capabilities or {}).get("vision")
+    ):
+        system += (
+            "\n\nVisual tools are enabled. When the question depends on slides, charts, demos or "
+            "on-screen text, inspect a contact sheet and use get_frame for small details. Cite the "
+            "exact timestamp and do not describe visual details you have not actually seen."
+        )
     messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
 
     evidence = evidence_message(chunks, full_context=full_context)

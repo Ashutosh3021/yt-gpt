@@ -8,6 +8,7 @@ back up or grep. Every write is atomic; derived files can be rebuilt from
 from __future__ import annotations
 
 import hashlib
+import io
 import re
 import shutil
 import threading
@@ -17,8 +18,11 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from .. import config
 from ..util import (
+    atomic_write_bytes,
     atomic_write_text,
     estimate_tokens,
     iso_now,
@@ -55,6 +59,8 @@ class NotFound(StoreError):
 class Conflict(StoreError):
     status_code = 409
 
+
+MAX_SOURCE_BYTES = 2_000_000
 
 _LOCKS: dict[str, threading.RLock] = {}
 _LOCKS_GUARD = threading.Lock()
@@ -261,6 +267,21 @@ class WorkspaceStore:
             self._save_workspace_json(ws_dir, data)
             return self._workspace_response(ws_dir, data)
 
+    def update_workspace_settings(self, ws_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        ws_dir = self.resolve(ws_id)
+        mapping = {"useVisuals": "use_visuals", "summarize": "summarize"}
+        with self._lock(ws_dir):
+            data = self._read_workspace_json(ws_dir)
+            settings = data.get("settings")
+            if not isinstance(settings, dict):
+                settings = {}
+            for key, value in patch.items():
+                if key in mapping and value is not None:
+                    settings[mapping[key]] = bool(value)
+            data["settings"] = settings
+            self._save_workspace_json(ws_dir, data)
+            return self._workspace_response(ws_dir, data)
+
     def delete_workspace(self, ws_id: str) -> None:
         ws_dir = self.resolve(ws_id)
         with self._lock(ws_dir):
@@ -347,6 +368,9 @@ class WorkspaceStore:
             raise NotFound("Video not found.")
         return meta
 
+    def video_dir(self, ws_dir: Path, video_id: str) -> Path:
+        return self._video_dir(ws_dir, video_id)
+
     def add_video(self, ws_dir: Path, video_id: str, url: str) -> dict[str, Any] | None:
         video_id = _validate_video_id(video_id)
         with self._lock(ws_dir):
@@ -415,6 +439,56 @@ class WorkspaceStore:
     def write_chunks(self, ws_dir: Path, video_id: str, chunks: Iterable[dict[str, Any]]) -> None:
         video_dir = self._video_dir(ws_dir, video_id)
         write_jsonl(video_dir / "chunks.jsonl", chunks)
+
+    def write_vectors(
+        self, ws_dir: Path, video_id: str, vectors: Iterable[Iterable[float]], model: str
+    ) -> None:
+        video_dir = self._video_dir(ws_dir, video_id)
+        array = np.asarray([[float(value) for value in vector] for vector in vectors], dtype=np.float32)
+        if array.ndim != 2 or array.shape[0] == 0 or array.shape[1] == 0:
+            raise StoreError("The embedding provider returned no usable vectors.")
+        buffer = io.BytesIO()
+        np.save(buffer, array, allow_pickle=False)
+        atomic_write_bytes(video_dir / "vectors.npy", buffer.getvalue())
+        write_json(
+            video_dir / "vectors.json",
+            {
+                "model": str(model),
+                "count": int(array.shape[0]),
+                "dim": int(array.shape[1]),
+                "updated_at": iso_now(),
+            },
+        )
+
+    def read_vectors(self, ws_dir: Path, video_id: str) -> tuple[np.ndarray | None, dict[str, Any]]:
+        video_dir = self._video_dir(ws_dir, video_id)
+        meta = read_json(video_dir / "vectors.json")
+        meta = meta if isinstance(meta, dict) else {}
+        try:
+            array = np.load(video_dir / "vectors.npy", allow_pickle=False)
+        except (OSError, ValueError):
+            return None, meta
+        if not isinstance(array, np.ndarray) or array.ndim != 2:
+            return None, meta
+        return array.astype(np.float32, copy=False), meta
+
+    def load_dense_chunks(self, ws_dir: Path, model: str) -> tuple[list[dict[str, Any]], np.ndarray | None]:
+        rows: list[dict[str, Any]] = []
+        matrices: list[np.ndarray] = []
+        for video_dir in self.list_video_dirs(ws_dir):
+            chunks = read_jsonl(video_dir / "chunks.jsonl")
+            if not chunks:
+                continue
+            vectors, meta = self.read_vectors(ws_dir, video_dir.name)
+            if vectors is None or str(meta.get("model") or "") != model:
+                continue
+            if vectors.shape[0] != len(chunks):
+                continue
+            rows.extend(chunks)
+            matrices.append(vectors)
+        if not matrices:
+            return [], None
+        return rows, np.vstack(matrices)
 
     def write_summary(self, ws_dir: Path, video_id: str, text: str) -> None:
         video_dir = self._video_dir(ws_dir, video_id)
@@ -641,6 +715,8 @@ class WorkspaceStore:
             if clean.lower() in existing or path.exists():
                 raise Conflict("A source with that name already exists.")
             body = content if content is not None else f"# {clean.rsplit('.', 1)[0]}\n\n"
+            if len(body.encode("utf-8")) > MAX_SOURCE_BYTES:
+                raise StoreError(f"Source documents are limited to {MAX_SOURCE_BYTES // 1_000_000} MB.")
             atomic_write_text(path, body)
             self._add_version(ws_dir, clean, body, "Created")
             data = self._read_workspace_json(ws_dir)
@@ -651,6 +727,8 @@ class WorkspaceStore:
         clean, path = self._source_path(ws_dir, name)
         if not path.exists():
             raise NotFound("Source not found.")
+        if len(content.encode("utf-8")) > MAX_SOURCE_BYTES:
+            raise StoreError(f"Source documents are limited to {MAX_SOURCE_BYTES // 1_000_000} MB.")
         with self._lock(ws_dir):
             atomic_write_text(path, content)
             self._add_version(ws_dir, clean, content, note or "Saved")

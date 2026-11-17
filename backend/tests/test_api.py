@@ -1,6 +1,17 @@
 import json
+import re
 
 import pytest
+
+
+def test_serves_bundled_frontend(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'id="root"' in response.text
+    asset = re.search(r'src="(/assets/[^"]+\.js)"', response.text)
+    assert asset is not None
+    assert client.get(asset.group(1)).status_code == 200
+    assert client.get("/api/not-a-route").status_code == 404
 
 
 def test_auth_flow(client):
@@ -147,6 +158,34 @@ def test_session_chat_stream(auth_client, workspace, monkeypatch):
     messages = loaded.json()["messages"]
     assert [message["role"] for message in messages] == ["user", "assistant"]
     assert messages[1]["content"].startswith("Hello")
+
+
+def test_session_chat_error_is_streamed_and_user_message_kept(auth_client, workspace, monkeypatch):
+    from yt_gpt.llm.provider import LlmError
+    from yt_gpt.server.routes import sessions as sessions_route
+
+    session = auth_client.post(
+        f"/api/workspaces/{workspace['id']}/sessions",
+        json={"title": "Error chat"},
+    )
+    session_id = session.json()["id"]
+
+    async def fake_run_chat(**kwargs):
+        raise LlmError("Configure an LLM in Settings.")
+        yield {}
+
+    monkeypatch.setattr(sessions_route, "run_chat", fake_run_chat)
+    response = auth_client.post(
+        f"/api/workspaces/{workspace['id']}/sessions/{session_id}/messages",
+        json={"content": "What is this about?"},
+    )
+    assert response.status_code == 200
+    events = [line[6:] for line in response.text.splitlines() if line.startswith("data: ")]
+    assert json.loads(events[0]) == {"error": "Configure an LLM in Settings."}
+    assert events[-1] == "[DONE]"
+
+    loaded = auth_client.get(f"/api/workspaces/{workspace['id']}/sessions/{session_id}")
+    assert [message["role"] for message in loaded.json()["messages"]] == ["user"]
 
 
 @pytest.mark.parametrize("path", ["/api/workspaces/nope", "/api/workspaces/ws_missing"])

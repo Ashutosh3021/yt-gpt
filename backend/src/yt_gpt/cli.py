@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import shutil
 import sys
 import threading
@@ -10,6 +11,8 @@ import webbrowser
 from pathlib import Path
 
 from . import config
+from .llm.embeddings import ensure_workspace_embeddings
+from .llm.provider import LlmConfig
 from .util import iso_now
 from .version import __version__
 from .workspace.store import StoreError, WorkspaceStore
@@ -157,6 +160,32 @@ def _export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _embed(args: argparse.Namespace) -> int:
+    profile = _pick_user(args.user)
+    user_id = str(profile["id"])
+    llm_config = LlmConfig.for_user(user_id)
+    if not llm_config.embedding_model:
+        raise SystemExit("Set an embedding model in Settings first.")
+    store = WorkspaceStore(user_id)
+    if args.workspace:
+        try:
+            workspaces = [store.resolve(args.workspace)]
+        except StoreError as exc:
+            raise SystemExit(str(exc)) from exc
+    else:
+        workspaces = [store.resolve(str(item.get("id"))) for item in store.list_workspaces()]
+    total = 0
+    for ws_dir in workspaces:
+        total += asyncio.run(
+            ensure_workspace_embeddings(store, ws_dir, llm_config, force=args.force)
+        )
+    print(
+        f"Embedded {total} chunk(s) with {llm_config.embedding_model} "
+        f"in {len(workspaces)} workspace(s)."
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="yt-gpt", description="Ask questions across YouTube transcripts.")
     sub = parser.add_subparsers(dest="command")
@@ -170,6 +199,12 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="Check the environment")
     doctor.add_argument("--rebuild", action="store_true", help="Rebuild clean text, chunks and exports")
     doctor.set_defaults(func=_doctor)
+
+    embed = sub.add_parser("embed", help="Build dense vectors for existing workspaces")
+    embed.add_argument("workspace", nargs="?", default=None)
+    embed.add_argument("--user", default=None, help="Profile email when several exist")
+    embed.add_argument("--force", action="store_true", help="Re-embed all chunks")
+    embed.set_defaults(func=_embed)
 
     export = sub.add_parser("export", help="Write a workspace transcript to markdown")
     export.add_argument("workspace")
