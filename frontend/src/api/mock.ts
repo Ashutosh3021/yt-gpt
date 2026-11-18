@@ -471,6 +471,14 @@ const api: Api = {
       save();
       return clone(ws);
     },
+    async updateSettings(id, settings) {
+      await wait(150);
+      const ws = ownedWorkspace(id);
+      ws.settings = { ...ws.settings, ...settings };
+      touch(ws);
+      save();
+      return clone(ws);
+    },
     async remove(id) {
       await wait(180);
       const ws = ownedWorkspace(id);

@@ -12,7 +12,7 @@ export const site = {
   description:
     'Turn YouTube links into clean transcripts and chat with them. Every answer cites the minute. Runs on your machine, with the model you choose.',
   url: 'http://127.0.0.1:8765',
-  version: '0.1.0-dev',
+  version: '1.0.0',
   root: '~/.yt-gpt',
   storagePath: '~/.yt-gpt/users/<you>/workspaces',
   colophon: 'Supreme by Fontshare, DM Mono by Google. Built with React, GSAP and Lenis.',

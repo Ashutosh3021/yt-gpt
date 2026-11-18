@@ -30,6 +30,8 @@ export function SessionSettings({
   const [personaPrompt, setPersonaPrompt] = useState('');
   const [modelOverride, setModelOverride] = useState('');
   const [useVisuals, setUseVisuals] = useState(false);
+  const [workspaceVisualsEnabled, setWorkspaceVisualsEnabled] = useState(false);
+  const [enablingVisuals, setEnablingVisuals] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -43,12 +45,13 @@ export function SessionSettings({
     setPersonaPrompt(session.settings.personaPrompt ?? '');
     setModelOverride(session.settings.modelOverride ?? '');
     setUseVisuals(session.settings.useVisuals);
+    setWorkspaceVisualsEnabled(workspace.settings.useVisuals);
     setError(null);
-  }, [open, session?.id]);
+  }, [open, session?.id, workspace.settings.useVisuals]);
 
   const persona = personas.find((p) => p.id === personaId) ?? personas[0];
   const vision = app?.llm.capabilities.vision ?? false;
-  const workspaceVisuals = workspace.settings.useVisuals;
+  const workspaceVisuals = workspaceVisualsEnabled;
   const models = app ? providerModels[app.llm.provider] ?? [] : [];
   const modelOptions = modelOverride && !models.includes(modelOverride) ? [modelOverride, ...models] : models;
 
@@ -91,6 +94,21 @@ export function SessionSettings({
       toast(err instanceof Error ? err.message : 'The session could not be deleted.', 'fail');
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function enableWorkspaceVisuals() {
+    setEnablingVisuals(true);
+    try {
+      await api.workspaces.updateSettings(workspace.id, { useVisuals: true });
+      setWorkspaceVisualsEnabled(true);
+      setUseVisuals(true);
+      onChanged();
+      toast('Visuals enabled for this workspace.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Visuals could not be enabled.', 'fail');
+    } finally {
+      setEnablingVisuals(false);
     }
   }
 
@@ -224,6 +242,18 @@ export function SessionSettings({
                 </span>
               </span>
             </label>
+
+            {!workspaceVisuals && vision && (
+              <Button
+                type="button"
+                variant="quiet"
+                size="sm"
+                loading={enablingVisuals}
+                onClick={enableWorkspaceVisuals}
+              >
+                Enable visuals for this workspace
+              </Button>
+            )}
 
             {error && <FormError>{error}</FormError>}
 

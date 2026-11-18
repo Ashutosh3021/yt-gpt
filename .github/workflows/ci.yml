@@ -32,7 +32,9 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e "./backend[dev]"
       - name: Lint
         working-directory: backend
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff format --check .
       - name: Type check
         working-directory: backend
         run: mypy src
@@ -56,3 +58,15 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+      - name: Bundle package static assets
+        run: |
+          rm -rf backend/src/yt_gpt/server/static
+          mkdir -p backend/src/yt_gpt/server/static
+          cp -R frontend/dist/. backend/src/yt_gpt/server/static/
+      - name: Verify committed bundle
+        run: |
+          if [ -n "$(git status --porcelain -- backend/src/yt_gpt/server/static)" ]; then
+            git status --porcelain -- backend/src/yt_gpt/server/static
+            echo "Frontend bundle is out of date. Rebuild and commit backend/src/yt_gpt/server/static." >&2
+            exit 1
+          fi

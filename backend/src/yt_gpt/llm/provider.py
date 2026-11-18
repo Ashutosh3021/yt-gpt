@@ -42,7 +42,9 @@ def litellm_embedding_model(provider: str, model: str) -> str:
     if not model:
         raise LlmError("Choose an embedding model in Settings.")
     if provider == "anthropic":
-        raise LlmError("Anthropic does not provide a text embedding endpoint. Pick another provider for embeddings.")
+        raise LlmError(
+            "Anthropic does not provide a text embedding endpoint. Pick another provider for embeddings."
+        )
     if provider == "google":
         return model if model.startswith(("gemini/", "vertex_ai/")) else f"gemini/{model}"
     if provider == "openrouter":

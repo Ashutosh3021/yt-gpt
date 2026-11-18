@@ -52,9 +52,7 @@ async def ensure_workspace_embeddings(
     count = 0
     for video_dir in store.list_video_dirs(ws_dir):
         try:
-            count += await ensure_video_embeddings(
-                store, ws_dir, video_dir.name, config, force=force
-            )
+            count += await ensure_video_embeddings(store, ws_dir, video_dir.name, config, force=force)
         except Exception as exc:
             log.warning("Embedding failed for %s: %s", video_dir.name, exc)
     return count

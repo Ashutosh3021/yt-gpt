@@ -95,6 +95,11 @@ const httpApi: Api = {
     get: (id) => request<Workspace>(`/api/workspaces/${id}`),
     create: (name) => request<Workspace>('/api/workspaces', json({ name })),
     rename: (id, name) => request<Workspace>(`/api/workspaces/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+    updateSettings: (id, settings) =>
+      request<Workspace>(`/api/workspaces/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ settings }),
+      }),
     remove: (id) => request<void>(`/api/workspaces/${id}`, { method: 'DELETE' }),
   },
   videos: {
@@ -140,14 +145,14 @@ const httpApi: Api = {
       return {
         llm,
         root: '~/.yt-gpt',
-        version: '0.1.0-dev',
+        version: '1.0.0',
         doctor: [],
       } satisfies AppSettings;
     },
     saveLlm: async (patch) => {
       await request<LlmSettings>('/api/settings/llm', { method: 'PUT', body: JSON.stringify(patch) });
       const llm = await request<LlmSettings>('/api/settings/llm');
-      return { llm, root: '~/.yt-gpt', version: '0.1.0-dev', doctor: [] } satisfies AppSettings;
+      return { llm, root: '~/.yt-gpt', version: '1.0.0', doctor: [] } satisfies AppSettings;
     },
     testLlm: () => request<{ ok: boolean; message: string }>('/api/settings/llm/test', { method: 'POST' }),
     rebuild: () => request<{ ok: boolean; message: string }>('/api/doctor/rebuild', { method: 'POST' }),

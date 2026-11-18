@@ -255,21 +255,21 @@ Runs only when `use_visuals` is on for the workspace or a session requests it. T
 flowchart TD
     A[Visual requested] --> B[Download low-res stream<br/>360p, no audio]
     B --> C[ffmpeg scene detection<br/>select='gt(scene,T)']
-    C --> D[Cap + dedupe<br/>max N frames, perceptual hash]
-    D --> E[Keyframes saved]
+    C --> D[Cap + thin near-duplicates<br/>max 24 frames]
+    D --> E[Sampled frames saved]
     E --> F[Build contact sheets<br/>6 thumbs / sheet, timestamp labels]
     F --> G[frames.json index]
     G -.->|LLM asks for detail| H[get_frame t=...<br/>download that section at high-res]
 ```
 
 ### Details
-- **Scene detection:** `ffmpeg -vf "select='gt(scene,0.3)',showinfo"`. The threshold is tunable per video. If a video yields very few frames (talking head), add a minimum cadence (for example one frame per 2–3 minutes). If it yields too many (animation), raise the threshold and enforce a hard cap (default 40 frames per video).
-- **Dedup:** perceptual hash (e.g., `imagehash`) drops near-identical frames.
+- **Scene detection:** `ffmpeg -vf "select='gt(scene,0.3)',showinfo"`. The threshold is tunable per video. If a video yields very few frames (talking head), add a minimum cadence (for example one frame per 2–3 minutes). If it yields too many (animation), raise the threshold and enforce a hard cap (default 24 frames per video).
+- **Dedup:** scene timestamps closer than four seconds are thinned before extraction.
 - **Contact sheets:** tile 6 keyframes (3×2) into one image with burned-in timestamps. The LLM browses sheets first; one sheet costs about the same as one image.
-- **On-demand detail:** the LLM calls `get_frame(video_id, t)`. The server downloads only that time slice (`yt-dlp --download-sections`) at higher resolution and extracts one frame. Results are cached in `keyframes/`.
+- **On-demand detail:** the LLM calls `get_frame(video_id, t)`. The server downloads only that time slice at higher resolution and extracts one frame. Results are cached in `visual/moments/`.
 - **Trigger heuristics for the LLM:** the system prompt tells it to request a frame when the transcript references visuals ("as you can see", "this chart", "on the left") or when the user asks about on-screen content.
 - **Capability gate:** if the chosen model has no vision or tool support, the visual tools are hidden and the UI explains why.
-- **Cleanup:** `lowres.mp4` is deleted after scene detection by default to save disk.
+- **Cleanup:** the temporary download is deleted after frame extraction; only sampled frames, sheets and requested moments are kept.
 
 ---
 
@@ -436,10 +436,11 @@ FastAPI + Uvicorn, bound to **127.0.0.1** by default.
 ### Optional extras
 ```
 pip install yt-gpt[whisper]      # faster-whisper
-pip install yt-gpt[embeddings]   # local embedding model
-pip install yt-gpt[pyronites]    # pyronites auth provider
-pip install yt-gpt[all]
+pip install yt-gpt[all]          # currently the same as [whisper]
 ```
+
+Embeddings use the configured provider API through LiteLLM, so they do not need
+a separate extra. Pyronites auth is not shipped in 1.0.
 
 ### CLI
 ```

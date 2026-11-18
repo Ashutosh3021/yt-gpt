@@ -237,9 +237,7 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
                         "sheet": sheet["index"],
                         "sheet_count": sheet["sheet_count"],
                         "timestamps": [frame.get("label") for frame in frames],
-                        "citation_hint": f"[{video_id} @ {frames[0].get('label')}]"
-                        if frames
-                        else "",
+                        "citation_hint": f"[{video_id} @ {frames[0].get('label')}]" if frames else "",
                         "note": "Frames are sampled from the video; use get_frame for exact detail.",
                     }
                 )

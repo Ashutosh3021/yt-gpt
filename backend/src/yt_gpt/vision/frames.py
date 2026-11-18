@@ -8,7 +8,6 @@ import re
 import shutil
 import subprocess
 import tempfile
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +53,7 @@ def _download_options(dest_dir: Path, *, height: int, section: tuple[float, floa
         "retries": 2,
         "extractor_retries": 2,
         "outtmpl": str(dest_dir / "source.%(ext)s"),
-        "format": f"b[height<={height}]/18/b",
+        "format": f"bv*[height<={height}]/b[height<={height}]/bv*/b",
     }
     cookies = config.cookies_file()
     if cookies:
@@ -183,7 +182,7 @@ def _extract_frame(video: Path, timestamp: float, destination: Path) -> None:
         raise VisualError("ffmpeg could not extract a frame from this video.")
 
 
-def _font(size: int) -> ImageFont.ImageFont:
+def _font(size: int) -> Any:
     for name in ("arial.ttf", "DejaVuSans.ttf", "segoeui.ttf"):
         try:
             return ImageFont.truetype(name, size)
@@ -195,9 +194,7 @@ def _font(size: int) -> ImageFont.ImageFont:
         return ImageFont.load_default()
 
 
-def build_contact_sheets(
-    frames: list[tuple[float, Path]], output_dir: Path
-) -> list[dict[str, Any]]:
+def build_contact_sheets(frames: list[tuple[float, Path]], output_dir: Path) -> list[dict[str, Any]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     sheets: list[dict[str, Any]] = []
     font = _font(16)
@@ -282,10 +279,7 @@ def ensure_contact_sheets(
             "video_id": video_id,
             "duration_s": duration,
             "created_at": iso_now(),
-            "frames": [
-                {"t": timestamp, "file": f"frames/{path.name}"}
-                for timestamp, path in frame_entries
-            ],
+            "frames": [{"t": timestamp, "file": f"frames/{path.name}"} for timestamp, path in frame_entries],
             "sheets": sheets,
         }
         write_json(manifest_path, manifest)
@@ -357,7 +351,3 @@ def image_data_url(path: Path) -> str:
 
 def clear_visuals(store: Any, ws_dir: Path, video_id: str) -> None:
     shutil.rmtree(store.video_dir(ws_dir, video_id) / "visual", ignore_errors=True)
-
-
-def new_work_id() -> str:
-    return uuid.uuid4().hex

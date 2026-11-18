@@ -116,7 +116,9 @@ def build_messages(
         sources=sources,
         rolling_summary=str(session.get("rollingSummary") or ""),
     )
-    workspace_settings = workspace.get("settings") if isinstance(workspace.get("settings"), dict) else {}
+    workspace_settings = workspace.get("settings")
+    if not isinstance(workspace_settings, dict):
+        workspace_settings = {}
     if (
         workspace_settings.get("useVisuals")
         and settings.get("useVisuals")

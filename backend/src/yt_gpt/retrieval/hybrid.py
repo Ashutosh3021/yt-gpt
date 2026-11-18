@@ -71,9 +71,7 @@ class Retriever:
         norm = float(np.linalg.norm(array))
         self._query_vector = array / norm if norm > 0 else None
 
-    def _dense_results(
-        self, *, top_k: int, video_ids: set[str] | None = None
-    ) -> list[dict[str, Any]]:
+    def _dense_results(self, *, top_k: int, video_ids: set[str] | None = None) -> list[dict[str, Any]]:
         if self.dense_matrix is None or self._query_vector is None:
             return []
         matrix = self.dense_matrix

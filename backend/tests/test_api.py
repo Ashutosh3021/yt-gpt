@@ -64,6 +64,11 @@ def test_workspace_and_source_flow(auth_client):
     assert renamed.status_code == 200
     assert renamed.json()["name"] == "Renamed"
 
+    settings = auth_client.patch(f"/api/workspaces/{workspace_id}", json={"settings": {"useVisuals": True}})
+    assert settings.status_code == 200
+    assert settings.json()["settings"]["useVisuals"] is True
+    assert settings.json()["name"] == "Renamed"
+
     source = auth_client.post(
         f"/api/workspaces/{workspace_id}/sources", json={"name": "notes", "content": "hello"}
     )

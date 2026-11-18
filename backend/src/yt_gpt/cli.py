@@ -176,13 +176,8 @@ def _embed(args: argparse.Namespace) -> int:
         workspaces = [store.resolve(str(item.get("id"))) for item in store.list_workspaces()]
     total = 0
     for ws_dir in workspaces:
-        total += asyncio.run(
-            ensure_workspace_embeddings(store, ws_dir, llm_config, force=args.force)
-        )
-    print(
-        f"Embedded {total} chunk(s) with {llm_config.embedding_model} "
-        f"in {len(workspaces)} workspace(s)."
-    )
+        total += asyncio.run(ensure_workspace_embeddings(store, ws_dir, llm_config, force=args.force))
+    print(f"Embedded {total} chunk(s) with {llm_config.embedding_model} in {len(workspaces)} workspace(s).")
     return 0
 
 

@@ -15,15 +15,15 @@ Open <http://127.0.0.1:8765>.
 
 ```
 src/yt_gpt/
-├── cli.py              # yt-gpt serve | doctor | export | version
+├── cli.py              # yt-gpt serve | doctor | embed | export | version
 ├── config.py           # ~/.yt-gpt, config.toml, secret key
 ├── server/             # FastAPI app, routes, SSE, static bundle
 ├── auth/               # AuthProvider + local password profiles
 ├── workspace/          # atomic file store, models, transcripts.md export
 ├── ingest/             # URL normalisation, yt-dlp, captions, cleaning, chunking, jobs
-├── retrieval/          # BM25 index (always on) + RRF helper
-├── llm/                # LiteLLM wrapper, capabilities, prompts, context, chat, tools
-├── vision/             # reserved for optional scene detection / frames
+├── retrieval/          # BM25 index + optional dense vectors + RRF
+├── llm/                # LiteLLM wrapper, embeddings, prompts, context, chat, tools
+├── vision/             # lazy scene sampling, contact sheets, exact frames
 └── sources/            # reserved namespace; sources are stored by workspace/store.py
 ```
 
@@ -31,8 +31,8 @@ src/yt_gpt/
 
 Everything lives under `~/.yt-gpt` (override with `YT_GPT_HOME`). There is no
 database. `segments.jsonl` and `meta.json` are the source of truth; `clean.txt`,
-`chunks.jsonl` and `transcripts.md` are derived and can be rebuilt with
-`yt-gpt doctor --rebuild`.
+`chunks.jsonl`, `vectors.npy` and `transcripts.md` are derived. `yt-gpt doctor
+--rebuild` rebuilds text artifacts; `yt-gpt embed` rebuilds vectors.
 
 API keys are stored in the OS keyring. If no keyring backend is available, a
 `0600` file under `~/.yt-gpt/secrets/` is used instead.
@@ -42,7 +42,8 @@ API keys are stored in the OS keyring. If no keyring backend is available, a
 ```bash
 pip install -e ".[dev]"
 pytest
-ruff check src tests
+ruff check .
+ruff format --check .
 mypy src
 ```
 
@@ -55,8 +56,8 @@ To run against the Vite dev server, build the frontend with
 
 The workflow at `.github/workflows/autopublish.yml` is manually triggered with a
 version string. It builds the frontend with `VITE_API_MODE=http`, bundles the
-dist output, updates `yt_gpt/version.py`, builds the wheel/sdist and publishes to
-PyPI. Configure a PyPI Trusted Publisher for this repository and workflow (or
+dist output, runs lint/type checks and the test suite, updates
+`yt_gpt/version.py`, builds the wheel/sdist and publishes to PyPI. Configure a PyPI Trusted Publisher for this repository and workflow (or
 add a `PYPI_API_TOKEN` repository secret as a fallback).
 
 ## Notes
@@ -64,7 +65,9 @@ add a `PYPI_API_TOKEN` repository secret as a fallback).
 - The server binds to `127.0.0.1` by default. Use `--host` only when you know
   what you are doing.
 - Whisper is optional: `pip install "yt-gpt[whisper]"`.
-- This release is text-only. Visual analysis is not wired yet; the workspace and
-  session toggles default to off, and text-only workspaces never download video.
-- Retrieval is BM25-only. Dense embeddings are planned but not implemented.
+- Visual analysis is lazy and opt-in. The workspace and session toggles default to
+  off, text-only workspaces never download video, and frames require a vision-capable
+  chat model.
+- Retrieval is hybrid when an embedding model is configured: vector search is fused
+  with BM25 using reciprocal rank fusion. Without vectors it falls back to BM25.
 - License: MIT (see `LICENSE`).

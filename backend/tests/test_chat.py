@@ -85,3 +85,76 @@ async def test_chat_runs_one_tool_round(home, monkeypatch):
     assert events[-1]["type"] == "final"
     assert events[-1]["citations"] == [{"videoId": "dQw4w9WgXcQ", "start": 3}]
     assert "Let me check." in events[-1]["content"]
+
+
+async def test_chat_attaches_visual_tool_image(home, monkeypatch):
+    from yt_gpt.llm import chat as chat_module
+    from yt_gpt.llm.tools import ToolResult
+
+    store = WorkspaceStore("u_test")
+    workspace = store.create_workspace("Visual")
+    ws_dir = store.resolve(workspace["id"])
+    store.add_video(ws_dir, "dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    store.write_segments(ws_dir, "dQw4w9WgXcQ", [{"start": 0, "end": 5, "text": "Slide one."}])
+    store.rebuild_derived(ws_dir)
+    store.update_workspace_settings(workspace["id"], {"useVisuals": True})
+    loaded = store.get_workspace(workspace["id"])
+    session = loaded["sessions"][0]
+    store.update_session(ws_dir, session["id"], settings={"useVisuals": True})
+    session = store.get_session(ws_dir, session["id"])
+
+    calls: list[list[dict]] = []
+
+    async def fake_stream(config, messages, *, tools=None):
+        calls.append(list(messages))
+        if len(calls) == 1:
+            yield {
+                "type": "tool_calls",
+                "tool_calls": [
+                    {
+                        "id": "call_visual",
+                        "type": "function",
+                        "function": {
+                            "name": "get_contact_sheet",
+                            "arguments": '{"video_id":"dQw4w9WgXcQ"}',
+                        },
+                    }
+                ],
+            }
+        else:
+            yield {"type": "token", "text": "The slide shows a chart."}
+
+    async def fake_tool(name, arguments, context):
+        assert context.visuals is True
+        return ToolResult("sheet ready", ["data:image/jpeg;base64,AAAA"])
+
+    monkeypatch.setattr(chat_module, "stream_chat", fake_stream)
+    monkeypatch.setattr(chat_module, "execute_tool", fake_tool)
+
+    events = [
+        event
+        async for event in run_chat(
+            store=store,
+            ws_dir=ws_dir,
+            workspace=loaded,
+            session=session,
+            query="What does the slide show?",
+            config=LlmConfig(
+                provider="openai",
+                base_url="https://api.openai.com/v1",
+                model="gpt-4.1-mini",
+                embedding_model="",
+                api_key="test",
+            ),
+        )
+    ]
+
+    assert calls[1][-2] == {
+        "role": "tool",
+        "tool_call_id": "call_visual",
+        "content": "sheet ready",
+    }
+    image_message = calls[1][-1]
+    assert image_message["role"] == "user"
+    assert image_message["content"][1]["image_url"]["url"] == "data:image/jpeg;base64,AAAA"
+    assert events[-1]["type"] == "final"

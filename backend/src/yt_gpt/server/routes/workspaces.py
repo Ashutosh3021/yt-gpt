@@ -47,9 +47,7 @@ async def update_workspace(body: WorkspacePatchBody, resolved: WorkspacePath) ->
             data = store.rename_workspace(ws_id, body.name)
             ws_dir = store.resolve(str(data.get("id") or ws_id))
         if body.settings is not None:
-            data = store.update_workspace_settings(
-                ws_id, body.settings.model_dump(exclude_none=True)
-            )
+            data = store.update_workspace_settings(ws_id, body.settings.model_dump(exclude_none=True))
         return data
     except StoreError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

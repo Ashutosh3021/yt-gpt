@@ -51,6 +51,49 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Set release version
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, re
+
+          version = os.environ["VERSION"].strip()
+          root = pathlib.Path(".")
+
+          def replace_version(path: pathlib.Path, pattern: str, replacement: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              updated, count = re.subn(pattern, replacement, text)
+              if count == 0:
+                  raise SystemExit(f"No version literal found in {path}")
+              path.write_text(updated, encoding="utf-8")
+
+          replace_version(
+              root / "backend/src/yt_gpt/version.py",
+              r'__version__ = "[^"]+"',
+              f'__version__ = "{version}"',
+          )
+          replace_version(
+              root / "frontend/src/data/site.ts",
+              r"version:\s*'[0-9]+\.[0-9]+\.[0-9]+[^']*'",
+              f"version: '{version}'",
+          )
+          replace_version(
+              root / "frontend/src/api/http.ts",
+              r"version:\s*'[0-9]+\.[0-9]+\.[0-9]+[^']*'",
+              f"version: '{version}'",
+          )
+
+          package = root / "frontend/package.json"
+          data = json.loads(package.read_text(encoding="utf-8"))
+          data["version"] = version
+          package.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+          lock = root / "frontend/package-lock.json"
+          data = json.loads(lock.read_text(encoding="utf-8"))
+          data["version"] = version
+          data.setdefault("packages", {}).setdefault("", {})["version"] = version
+          lock.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+          PY
+
       - name: Build frontend
         working-directory: frontend
         env:
@@ -64,14 +107,16 @@ jobs:
           mkdir -p backend/src/yt_gpt/server/static
           cp -R frontend/dist/. backend/src/yt_gpt/server/static/
 
-      - name: Set package version
+      - name: Install backend development dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e "./backend[dev]"
+
+      - name: Verify backend
+        working-directory: backend
         run: |
-          python - <<'PY'
-          import os, pathlib
-          version = os.environ["VERSION"].strip()
-          path = pathlib.Path("backend/src/yt_gpt/version.py")
-          path.write_text(f'__version__ = "{version}"\n', encoding="utf-8")
-          PY
+          ruff check .
+          ruff format --check .
+          mypy src
+          pytest -q
 
       - name: Build sdist and wheel
         working-directory: backend

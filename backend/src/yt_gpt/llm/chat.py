@@ -103,8 +103,12 @@ async def run_chat(
         retriever=retriever,
     )
     capabilities = config.capabilities
-    workspace_settings = workspace.get("settings") if isinstance(workspace.get("settings"), dict) else {}
-    session_settings = session.get("settings") if isinstance(session.get("settings"), dict) else {}
+    workspace_settings = workspace.get("settings")
+    if not isinstance(workspace_settings, dict):
+        workspace_settings = {}
+    session_settings = session.get("settings")
+    if not isinstance(session_settings, dict):
+        session_settings = {}
     visuals = bool(
         workspace_settings.get("useVisuals")
         and session_settings.get("useVisuals")
@@ -159,8 +163,7 @@ async def run_chat(
                         }
                     ]
                     parts.extend(
-                        {"type": "image_url", "image_url": {"url": image}}
-                        for image in result.images
+                        {"type": "image_url", "image_url": {"url": image}} for image in result.images
                     )
                     messages.append({"role": "user", "content": parts})
             else:

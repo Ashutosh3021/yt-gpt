@@ -33,13 +33,17 @@ yt-gpt serve
 - Sessions with grounding mode and persona
 - LLM provider/key/model settings
 
-### v1.0 (Milestones 4–8)
+### v1.0 (shipped)
 - Whisper fallback, playlists, cookies, retries
 - Sources section (create/edit/upload/download, versions, LLM tools)
-- Visual pipeline (scene detection, contact sheets, on-demand frames)
-- Embeddings, map-reduce summaries, prompt caching, cost preview
+- Visual pipeline (lazy scene sampling, contact sheets, on-demand frames)
+- Optional embeddings with hybrid BM25 + RRF retrieval
+- Hardening, docs, CI, release
+
+### v1.1 (planned)
+- Map-reduce summaries, rolling session summaries and a cost/usage panel
 - Pyronites auth provider (if still wanted)
-- Hardening, docs, release
+- Broader release hardening and clean-venv matrix
 
 ### Later
 - Selecting/filtering videos per session in the UI
@@ -223,7 +227,7 @@ M5 and M6 are independent after M3 and can be swapped. M7 benefits from M6's ben
 
 1. **What is login for?** Cross-machine accounts (needs a Pyronites backend and a restricted key) vs. keeping others out on a shared machine (local password is enough). This decides whether M1 includes the Pyronites adapter or defers it.
 2. **Frontend stack:** prebuilt React bundle (richer UI, build step for you only) vs. HTMX/Alpine (simpler, smaller).
-3. **Embeddings in v1?** Or ship BM25-only first and add embeddings in M7.
+3. **Embeddings in v1?** Answered: yes, optional and fused with BM25.
 4. **Package name:** keep `yt-gpt` or pick one without "gpt".
 
 ---

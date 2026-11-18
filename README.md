@@ -7,7 +7,7 @@ pip install yt-gpt
 yt-gpt serve
 ```
 
-> **Status: beta, text-first.** Caption ingestion, Whisper fallback, BM25 retrieval, streaming chat with citations, sessions, Sources and the local web UI are implemented. Visual analysis and dense embeddings are not shipped yet.
+> **Status: 1.0.** Caption ingestion, Whisper fallback, hybrid BM25 + dense retrieval, streaming chat with citations, sessions, Sources, optional visual frames and the local web UI are implemented.
 
 ---
 
@@ -24,7 +24,8 @@ yt-gpt serve
 - **Chat sessions:** each session has its own grounding mode (*strict* or *interpretive*), persona and optional model override.
 - **Citations:** answers can cite `[video_id @ mm:ss]`, rendered as timestamped YouTube links in the UI.
 - **Sources:** documents the LLM can create, patch and refine, with version history, upload and download.
-- **Bring your own LLM:** OpenAI, Anthropic, Google, OpenRouter, Ollama or any OpenAI-compatible endpoint. Keys are stored in the OS keyring when available.
+- **Bring your own LLM:** OpenAI, Anthropic, Google, OpenRouter, Ollama or any OpenAI-compatible endpoint. Keys are stored in the OS keyring when available. Optionally choose an embedding model (Anthropic does not expose one) to fuse dense retrieval with BM25.
+- **Visual questions:** opt in per workspace and session, then use a vision-capable model to inspect cached contact sheets and request exact high-resolution frames. Text-only workspaces never download video.
 - **Everything is a file:** no database. Workspaces are folders you can read, back up or grep.
 
 ---
@@ -40,16 +41,17 @@ yt-gpt serve                    # http://127.0.0.1:8765
 ```
 
 1. Sign up / log in.
-2. **Settings → LLM:** choose provider, enter your API key and pick a model.
+2. **Settings → LLM:** choose provider, enter your API key and pick a model. Add an embedding model if you want dense retrieval.
 3. **New workspace:** give it a name.
-4. Paste your links and wait for videos to reach *ready*.
-5. **New session:** choose grounding mode and persona, then start chatting.
+4. Paste your links and wait for videos to reach *ready*. New ingests build vectors automatically when an embedding model is configured; run `yt-gpt embed` once for older workspaces.
+5. **New session:** choose grounding mode and persona, then start chatting. Enable visuals per workspace and session if the model supports vision.
 6. Use the **Sources** panel for documents the model drafts or you upload.
 
 Other commands:
 
 ```bash
 yt-gpt doctor [--rebuild]   # check ffmpeg / yt-dlp / config; rebuild derived files
+yt-gpt embed [workspace]    # build dense vectors for existing workspaces
 yt-gpt export <workspace>   # write the workspace transcript to a file
 yt-gpt version
 ```
@@ -61,9 +63,10 @@ yt-gpt version
 | Area | Technique |
 |------|-----------|
 | Text | Reuse existing captions; strip tags, timestamps and rolling duplicate lines from auto-captions |
-| Retrieval | BM25 over timestamped chunks, so only relevant passages are sent per question |
-| Context | Per-session history plus rolling summaries instead of unbounded chat logs |
-| Prompts | Stable prompt prefix ordering for provider prompt caching |
+| Retrieval | BM25 over timestamped chunks, fused with dense vectors when an embedding model is configured |
+| Visuals | Lazy, opt-in contact sheets from sampled frames; exact frames only when requested |
+| Context | Recent session history capped by message and character limits; retrieved passages sized to the model context |
+| Prompts | Stable prompt prefix ordering keeps the system and evidence prefix consistent |
 
 ---
 
@@ -74,7 +77,7 @@ yt-gpt version
 └── users/<user_id>/workspaces/<workspace>/
     ├── workspace.json      # workspace metadata
     ├── transcripts.md      # generated export of the whole workspace
-    ├── videos/<id>/        # meta, timestamped segments, clean text, chunks
+    ├── videos/<id>/        # meta, segments, chunks, vectors, optional visual cache
     ├── sessions/           # one JSON file per chat session
     └── sources/            # documents with version history
 ```
@@ -86,7 +89,7 @@ Override the location with `YT_GPT_HOME`. Secrets are never written into workspa
 ## Privacy and security
 
 - The server binds to **127.0.0.1** by default.
-- Videos, transcripts and chats stay on your machine; only the text needed for a question is sent to the LLM provider **you** configure.
+- Videos, transcripts and chats stay on your machine; only the text and optional sampled frames needed for a question are sent to the LLM provider **you** configure.
 - No telemetry.
 - Sessions use signed, HTTP-only cookies.
 
@@ -97,8 +100,9 @@ Override the location with `YT_GPT_HOME`. Secrets are never written into workspa
 - **yt-dlp depends on YouTube's current behavior** and occasionally breaks; `yt-gpt doctor` reports the installed version.
 - **Auto-generated captions can be inaccurate.** The UI shows whether a transcript is manual, auto or Whisper-generated.
 - **Strict mode is enforced structurally** with required citations and refusal when retrieval is empty, but no prompt can guarantee a model never strays.
-- **This release is text-only.** The `vision/` package is reserved for the planned frame pipeline.
-- **Retrieval is BM25-only.** Dense embeddings are planned but not implemented yet.
+- **Visuals are sampled, not full video analysis.** Contact sheets are built lazily from scene changes and capped at 24 frames; exact frames are cached on demand.
+- **Dense retrieval is optional.** It requires an embedding model and either a fresh ingest or one `yt-gpt embed` run. BM25 remains the fallback.
+- **Visual tools need a vision-capable model.** The toggles stay disabled when the selected model does not report vision support.
 - Use this tool for **personal, local use** and respect YouTube's Terms of Service and content creators' rights.
 
 ---
@@ -117,8 +121,8 @@ Override the location with `YT_GPT_HOME`. Secrets are never written into workspa
 
 ## Roadmap
 
-- **Done:** local auth, workspaces, caption ingestion, playlist expansion, Whisper fallback, BM25 retrieval, streaming chat with citations, sessions, Sources with versions, CLI, bundled web UI, PyPI publishing workflow.
-- **Next:** visual pipeline, optional embeddings, map-reduce summaries, cost panel, broader release hardening and clean-venv tests on all supported platforms.
+- **Done:** local auth, workspaces, caption ingestion, playlist expansion, Whisper fallback, hybrid retrieval, streaming chat with citations, sessions, Sources with versions, optional visual frames, CLI, bundled web UI, CI and PyPI publishing.
+- **Next:** map-reduce summaries, cost/usage panel, broader release hardening and clean-venv tests on all supported platforms.
 - **Later:** per-session video filters, workspace zip import/export, additional source types, cross-workspace search, optional sync.
 
 ---
