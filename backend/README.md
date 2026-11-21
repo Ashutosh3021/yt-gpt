@@ -4,12 +4,17 @@ The FastAPI service, ingestion pipeline, retrieval engine and CLI that power the
 `yt-gpt` package. The compiled frontend is bundled under
 `src/yt_gpt/server/static` and served by the same process.
 
+Install the published package and run it directly:
+
 ```bash
-pip install -e ".[dev]"
+python -m venv .venv
+source .venv/bin/activate      # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install yt-gpt
 yt-gpt serve
 ```
 
-Open <http://127.0.0.1:8765>.
+Open <http://127.0.0.1:8765>. Cloning and `pip install -e ".[dev]"` are only
+needed when developing the backend.
 
 ## Layout
 

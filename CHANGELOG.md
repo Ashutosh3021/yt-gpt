@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Install docs now use `pip install yt-gpt` in a fresh virtual environment;
+  editable installs are documented only for backend development.
+
+### Fixed
+
+- Python 3.10 type-check compatibility for the dense retrieval mask.
+
 ### Planned
 
 - Map-reduce summaries and a cost/usage panel.

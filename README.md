@@ -2,8 +2,12 @@
 
 **A local, NotebookLM-style workspace for YouTube.** Paste video or playlist links, turn them into clean, searchable transcripts, then chat with them under per-session rules. You choose the LLM, and everything is stored as plain files on your machine.
 
+Install from PyPI in a fresh virtual environment — no clone or development setup required:
+
 ```bash
-pip install yt-gpt
+python -m venv .venv
+source .venv/bin/activate      # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install yt-gpt
 yt-gpt serve
 ```
 
@@ -33,6 +37,9 @@ yt-gpt serve
 ## Quick start
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate       # Windows PowerShell: .venv\Scripts\Activate.ps1
+
 pip install yt-gpt              # core
 pip install "yt-gpt[whisper]"   # + local Whisper fallback
 pip install "yt-gpt[all]"       # currently the same as [whisper]

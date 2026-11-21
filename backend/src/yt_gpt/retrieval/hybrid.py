@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from .bm25 import BM25
 
@@ -78,7 +79,7 @@ class Retriever:
         if matrix.shape[1] != self._query_vector.shape[0]:
             return []
         scores = matrix @ self._query_vector
-        allowed = np.ones(len(self.dense_chunks), dtype=bool)
+        allowed: npt.NDArray[np.bool_] = np.ones(len(self.dense_chunks), dtype=bool)
         if video_ids:
             allowed = np.asarray(
                 [str(chunk.get("video_id")) in video_ids for chunk in self.dense_chunks], dtype=bool
