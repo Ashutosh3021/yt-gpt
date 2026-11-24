@@ -72,7 +72,7 @@ yt-gpt version
 | Text | Reuse existing captions; strip tags, timestamps and rolling duplicate lines from auto-captions |
 | Retrieval | BM25 over timestamped chunks, fused with dense vectors when an embedding model is configured |
 | Visuals | Lazy, opt-in contact sheets from sampled frames; exact frames only when requested |
-| Context | Recent session history capped by message and character limits; retrieved passages sized to the model context |
+| Context | Per-request input budget includes system, history, tools and evidence (5.5k on Groq, 12k default); history and tool output are trimmed before every call. Override with `YT_GPT_MAX_PROMPT_TOKENS` |
 | Prompts | Stable prompt prefix ordering keeps the system and evidence prefix consistent |
 
 ---

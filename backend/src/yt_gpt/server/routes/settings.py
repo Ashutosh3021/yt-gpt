@@ -26,7 +26,7 @@ def _public(user_id: str) -> dict[str, Any]:
         "embeddingModel": stored["embedding_model"],
         "hasKey": bool(api_key),
         "keyMasked": settings_store.mask_key(api_key),
-        "capabilities": model_capabilities(stored["provider"], stored["model"]),
+        "capabilities": model_capabilities(stored["provider"], stored["model"], stored["base_url"]),
     }
 
 

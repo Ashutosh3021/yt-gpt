@@ -9,9 +9,9 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from ..retrieval.hybrid import Retriever
-from ..util import parse_seconds, truncate
+from ..util import estimate_tokens, parse_seconds, truncate
 from ..workspace.store import WorkspaceStore
-from .context import build_messages
+from .context import build_messages, prompt_token_budget, trim_messages
 from .provider import LlmConfig, LlmError, complete, embed_texts, stream_chat
 from .tools import ToolContext, ToolResult, execute_tool, tool_definitions
 
@@ -93,15 +93,6 @@ async def run_chat(
             retriever.set_query_vector(query_vectors[0] if query_vectors else None)
         except LlmError as exc:
             log.warning("Query embedding failed; using keyword search only: %s", exc)
-    messages, _chunks, _full = build_messages(
-        store=store,
-        ws_dir=ws_dir,
-        workspace=workspace,
-        session=session,
-        config=config,
-        query=query,
-        retriever=retriever,
-    )
     capabilities = config.capabilities
     workspace_settings = workspace.get("settings")
     if not isinstance(workspace_settings, dict):
@@ -115,12 +106,25 @@ async def run_chat(
         and capabilities.get("vision")
     )
     tools = tool_definitions(visuals=visuals) if capabilities.get("tools") else []
+    tool_reserve = estimate_tokens(json.dumps(tools, separators=(",", ":"))) if tools else 0
+    messages, _chunks, _full = build_messages(
+        store=store,
+        ws_dir=ws_dir,
+        workspace=workspace,
+        session=session,
+        config=config,
+        query=query,
+        retriever=retriever,
+        reserve_tokens=tool_reserve,
+    )
+    message_budget = max(1000, prompt_token_budget(config) - tool_reserve)
     context = _tool_context(store, ws_dir, workspace, session, retriever, config, visuals)
 
     answer_parts: list[str] = []
     for round_index in range(MAX_TOOL_ROUNDS + 1):
         assistant_text = ""
         tool_calls: list[dict[str, Any]] = []
+        messages = trim_messages(messages, message_budget)
         async for event in stream_chat(config, messages, tools=tools or None):
             if event["type"] == "token":
                 assistant_text += event["text"]
@@ -140,7 +144,7 @@ async def run_chat(
                     "content": "Stop using tools and answer now with the evidence you already have.",
                 }
             )
-            final = await complete(config, messages, max_tokens=1200)
+            final = await complete(config, trim_messages(messages, message_budget), max_tokens=1200)
             if final:
                 answer_parts.append(final)
                 yield {"type": "token", "text": final}

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
+
+GROQ_PROMPT_TOKENS = 5500
+DEFAULT_PROMPT_TOKENS = 12000
 
 VISION_HINTS = (
     "gpt-4o",
@@ -41,7 +45,18 @@ CONTEXT_SIZES: tuple[tuple[str, int], ...] = (
 )
 
 
-def model_capabilities(provider: str, model: str) -> dict[str, Any]:
+def _prompt_token_limit(base_url: str, context_k: int) -> int:
+    override = os.environ.get("YT_GPT_MAX_PROMPT_TOKENS", "").strip()
+    if override:
+        try:
+            return max(1000, int(override))
+        except ValueError:
+            pass
+    limit = GROQ_PROMPT_TOKENS if "groq.com" in (base_url or "").lower() else DEFAULT_PROMPT_TOKENS
+    return max(1000, min(limit, int(context_k * 1000 * 0.75)))
+
+
+def model_capabilities(provider: str, model: str, base_url: str = "") -> dict[str, Any]:
     name = (model or "").lower()
     context = 32
     for hint, size in CONTEXT_SIZES:
@@ -57,4 +72,5 @@ def model_capabilities(provider: str, model: str) -> dict[str, Any]:
         "tools": tools,
         "caching": provider in CACHE_PROVIDERS,
         "contextK": context,
+        "promptTokens": _prompt_token_limit(base_url, context),
     }

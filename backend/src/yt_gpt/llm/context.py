@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from ..retrieval.hybrid import Retriever
@@ -11,6 +12,68 @@ from .prompts import build_system_prompt, evidence_message, sources_message
 
 HISTORY_MESSAGES = 12
 HISTORY_CHAR_LIMIT = 4000
+MIN_EVIDENCE_TOKENS = 800
+DEFAULT_PROMPT_TOKENS = 12000
+
+
+def _content_tokens(content: Any) -> int:
+    if isinstance(content, str):
+        return estimate_tokens(content)
+    if isinstance(content, list):
+        total = 0
+        for part in content:
+            if not isinstance(part, dict):
+                continue
+            text = part.get("text")
+            if isinstance(text, str):
+                total += estimate_tokens(text)
+            elif part.get("type") == "image_url":
+                total += 1000
+        return total
+    return 0
+
+
+def message_tokens(message: dict[str, Any]) -> int:
+    total = _content_tokens(message.get("content"))
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list):
+        total += estimate_tokens(json.dumps(tool_calls, separators=(",", ":")))
+    return total
+
+
+def prompt_token_budget(config: Any) -> int:
+    return int((config.capabilities or {}).get("promptTokens") or DEFAULT_PROMPT_TOKENS)
+
+
+def trim_messages(messages: list[dict[str, Any]], budget: int) -> list[dict[str, Any]]:
+    trimmed = [dict(message) for message in messages]
+    if budget <= 0 or sum(message_tokens(message) for message in trimmed) <= budget:
+        return trimmed
+
+    turn_start = max(
+        (index for index, message in enumerate(trimmed) if message.get("role") == "user"),
+        default=len(trimmed) - 1,
+    )
+
+    while sum(message_tokens(message) for message in trimmed) > budget:
+        removable = next(
+            (index for index in range(turn_start) if trimmed[index].get("role") != "system"),
+            None,
+        )
+        if removable is None:
+            break
+        del trimmed[removable]
+        turn_start -= 1
+
+    for index in sorted(range(len(trimmed)), key=lambda i: message_tokens(trimmed[i]), reverse=True):
+        overflow = sum(message_tokens(message) for message in trimmed) - budget
+        if overflow <= 0:
+            break
+        content = trimmed[index].get("content")
+        if isinstance(content, str):
+            keep = max(0, len(content) - overflow * 4)
+            trimmed[index]["content"] = content[:keep].rstrip()
+    return trimmed
 
 
 def total_transcript_tokens(videos: list[dict[str, Any]]) -> int:
@@ -83,6 +146,7 @@ def build_messages(
     config: Any,
     query: str,
     retriever: Retriever | None = None,
+    reserve_tokens: int = 0,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], bool]:
     videos = [video for video in workspace.get("videos") or [] if isinstance(video, dict)]
     sources = [source for source in workspace.get("sources") or [] if isinstance(source, dict)]
@@ -92,20 +156,7 @@ def build_messages(
     grounding = str(settings.get("grounding") or "strict")
     persona_id = str(settings.get("personaId") or "default")
     persona_prompt = settings.get("personaPrompt")
-    context_k = int((config.capabilities or {}).get("contextK") or 32)
-    total_budget = max(4000, int(context_k * 1000 * 0.6))
-    evidence_budget = int(total_budget * 0.55)
-
-    if retriever is None:
-        retriever = Retriever.from_store(store, ws_dir)
-    chunks, full_context = _select_evidence(
-        store=store,
-        ws_dir=ws_dir,
-        videos=videos,
-        query=query,
-        retriever=retriever,
-        budget_tokens=evidence_budget,
-    )
+    budget = prompt_token_budget(config)
 
     system = build_system_prompt(
         workspace_name=str(workspace.get("name") or "Workspace"),
@@ -129,17 +180,40 @@ def build_messages(
             "on-screen text, inspect a contact sheet and use get_frame for small details. Cite the "
             "exact timestamp and do not describe visual details you have not actually seen."
         )
-    messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
 
+    notes = sources_message(sources) if grounding != "strict" else ""
+    history = _history(session, query)
+
+    def fixed_tokens() -> int:
+        return (
+            estimate_tokens(system)
+            + estimate_tokens(notes)
+            + sum(message_tokens(message) for message in history)
+            + estimate_tokens(query)
+            + max(0, reserve_tokens)
+        )
+
+    while history and budget - fixed_tokens() < MIN_EVIDENCE_TOKENS:
+        history.pop(0)
+    evidence_budget = max(0, budget - fixed_tokens())
+
+    if retriever is None:
+        retriever = Retriever.from_store(store, ws_dir)
+    chunks, full_context = _select_evidence(
+        store=store,
+        ws_dir=ws_dir,
+        videos=videos,
+        query=query,
+        retriever=retriever,
+        budget_tokens=evidence_budget,
+    )
+
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
     evidence = evidence_message(chunks, full_context=full_context)
     if evidence:
         messages.append({"role": "system", "content": evidence})
-
-    if grounding != "strict":
-        notes = sources_message(sources)
-        if notes:
-            messages.append({"role": "system", "content": notes})
-
-    messages.extend(_history(session, query))
+    if notes:
+        messages.append({"role": "system", "content": notes})
+    messages.extend(history)
     messages.append({"role": "user", "content": query})
-    return messages, chunks, full_context
+    return trim_messages(messages, budget), chunks, full_context

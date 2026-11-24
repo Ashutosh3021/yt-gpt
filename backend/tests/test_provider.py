@@ -42,4 +42,7 @@ def test_ollama_base_url_drops_openai_suffix():
 def test_friendly_errors():
     assert "API key" in friendly_error(RuntimeError("401 unauthorized"))
     assert "rate-limited" in friendly_error(RuntimeError("429 rate limit"))
+    assert "per-minute input-token limit" in friendly_error(
+        RuntimeError("litellm.RateLimitError: input tokens per minute (ITPM): Limit 7000")
+    )
     assert "context window" in friendly_error(RuntimeError("context length exceeded"))

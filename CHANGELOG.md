@@ -10,10 +10,15 @@ All notable changes to this project are documented here. The format follows
 
 - Install docs now use `pip install yt-gpt` in a fresh virtual environment;
   editable installs are documented only for backend development.
+- Publishing now stops early when the requested version already exists on PyPI.
 
 ### Fixed
 
 - Python 3.10 type-check compatibility for the dense retrieval mask.
+- Prompts now stay within a per-model input budget and are trimmed before every
+  provider call, preventing per-minute token-limit failures on small-tier models.
+- Rate-limit errors now explain when a provider's input-tokens-per-minute limit
+  was exceeded.
 
 ### Planned
 

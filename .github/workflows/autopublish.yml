@@ -37,6 +37,22 @@ jobs:
               sys.exit(f"Not a valid version: {version!r}")
           PY
 
+      - name: Reject already-published version
+        run: |
+          python - <<'PY'
+          import json, os, urllib.error, urllib.request
+          version = os.environ["VERSION"].strip()
+          try:
+              with urllib.request.urlopen("https://pypi.org/pypi/yt-gpt/json", timeout=30) as response:
+                  releases = json.load(response)["releases"]
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+              releases = {}
+          if version in releases:
+              raise SystemExit(f"yt-gpt {version} is already on PyPI. Bump the version before publishing.")
+          PY
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

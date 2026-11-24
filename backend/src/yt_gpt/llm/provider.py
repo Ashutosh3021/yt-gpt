@@ -61,7 +61,12 @@ def friendly_error(exc: BaseException) -> str:
     lower = text.lower()
     if "api key" in lower or "authentication" in lower or "401" in lower or "unauthorized" in lower:
         return "The API key was rejected. Check the key in Settings."
-    if "rate limit" in lower or "429" in lower or "quota" in lower:
+    if "ratelimit" in lower or "rate limit" in lower or "429" in lower or "quota" in lower:
+        if "itpm" in lower or "input tokens per minute" in lower or "tokens per minute" in lower:
+            return (
+                "The provider's per-minute input-token limit was exceeded. Wait a minute, "
+                "use a smaller workspace or model, or raise the limit."
+            )
         return "The provider rate-limited or ran out of quota. Wait and retry, or change models."
     if "context" in lower and ("length" in lower or "window" in lower):
         return "The conversation is larger than this model's context window. Start a new session or pick a larger model."
@@ -86,7 +91,7 @@ class LlmConfig:
 
     @property
     def capabilities(self) -> dict[str, Any]:
-        return model_capabilities(self.provider, self.model)
+        return model_capabilities(self.provider, self.model, self.base_url)
 
     @classmethod
     def for_user(cls, user_id: str) -> LlmConfig:

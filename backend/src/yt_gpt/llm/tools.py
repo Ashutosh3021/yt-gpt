@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..retrieval.hybrid import Retriever
-from ..util import format_seconds, parse_seconds, truncate
+from ..util import estimate_tokens, format_seconds, parse_seconds, truncate
 from ..vision.frames import VisualError, contact_sheet, frame_at, image_data_url
 from ..workspace.store import Conflict, NotFound, StoreError, WorkspaceStore
 
@@ -178,6 +178,11 @@ def _json(data: Any) -> str:
     return json.dumps(data, ensure_ascii=False)[:12000]
 
 
+def _result_token_limit(ctx: ToolContext) -> int:
+    prompt_tokens = int((ctx.config.capabilities or {}).get("promptTokens") or 12000)
+    return max(600, min(MAX_RANGE_TOKENS, prompt_tokens // 3))
+
+
 def _chunk_payload(chunk: dict[str, Any]) -> dict[str, Any]:
     return {
         "video_id": chunk.get("video_id"),
@@ -198,7 +203,11 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
             filter_ids = {str(value) for value in video_ids} if isinstance(video_ids, list) else None
             k = int(arguments.get("k") or 6)
             results = ctx.retriever.search(query, k=max(1, min(k, 20)), video_ids=filter_ids)
-            return _json({"results": [_chunk_payload(chunk) for chunk in results]})
+            payload = [_chunk_payload(chunk) for chunk in results]
+            limit = _result_token_limit(ctx)
+            while len(payload) > 1 and estimate_tokens(_json({"results": payload})) > limit:
+                payload.pop()
+            return _json({"results": payload})
 
         if name == "get_transcript_range":
             video_id = str(arguments.get("video_id") or "")
@@ -216,7 +225,8 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
                 for segment in segments
                 if float(segment.get("end") or 0) >= start and float(segment.get("start") or 0) <= end
             ]
-            while sum(len(str(item["text"])) for item in picked) // 4 > MAX_RANGE_TOKENS and picked:
+            limit = _result_token_limit(ctx)
+            while picked and estimate_tokens(_json({"segments": picked})) > limit:
                 picked.pop()
             return _json({"video_id": video_id, "start": start, "end": end, "segments": picked})
 
@@ -282,7 +292,8 @@ async def execute_tool(name: str, arguments: dict[str, Any], ctx: ToolContext) -
 
         if name == "read_source":
             source = ctx.store.get_source(ctx.ws_dir, str(arguments.get("name") or ""))
-            return _json({"name": source["name"], "content": truncate(source["content"], 12000)})
+            limit = _result_token_limit(ctx)
+            return _json({"name": source["name"], "content": truncate(source["content"], limit * 4)})
 
         if name == "create_source":
             source = ctx.store.create_source(
