@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
@@ -18,6 +20,10 @@ except Exception:  # pragma: no cover - broken install
 
 class LlmError(Exception):
     """A user-facing provider failure."""
+
+    def __init__(self, message: str, *, retry_after: int | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 def litellm_model(provider: str, model: str) -> str:
@@ -56,12 +62,17 @@ def litellm_embedding_model(provider: str, model: str) -> str:
     return model
 
 
+def _is_rate_limit(text: str) -> bool:
+    lower = text.lower()
+    return "ratelimit" in lower or "rate limit" in lower or "429" in lower or "quota" in lower
+
+
 def friendly_error(exc: BaseException) -> str:
     text = str(exc) or exc.__class__.__name__
     lower = text.lower()
     if "api key" in lower or "authentication" in lower or "401" in lower or "unauthorized" in lower:
         return "The API key was rejected. Check the key in Settings."
-    if "ratelimit" in lower or "rate limit" in lower or "429" in lower or "quota" in lower:
+    if _is_rate_limit(text):
         if "itpm" in lower or "input tokens per minute" in lower or "tokens per minute" in lower:
             return (
                 "The provider's per-minute input-token limit was exceeded. Wait a minute, "
@@ -75,6 +86,46 @@ def friendly_error(exc: BaseException) -> str:
     if "connect" in lower or "timeout" in lower or "unreachable" in lower:
         return "The provider could not be reached. Check your network or the base URL."
     return f"The model call failed: {text[:260]}"
+
+
+def retry_after_seconds(exc: BaseException) -> int | None:
+    """Return a provider-requested cooldown, or a one-minute default for rate limits."""
+    text = str(exc)
+    if not _is_rate_limit(text):
+        return None
+
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers is None:
+        headers = getattr(exc, "headers", None)
+    if headers is not None:
+        try:
+            raw = headers.get("retry-after") or headers.get("Retry-After")
+        except Exception:
+            raw = None
+        try:
+            if raw is not None:
+                return max(1, math.ceil(float(raw)))
+        except (TypeError, ValueError):
+            pass
+
+    match = re.search(
+        r"(?:try again|retry(?:\s+after)?)\s+(?:in\s+)?([\d.]+)\s*(?:s|sec(?:onds)?)\b",
+        text,
+        re.IGNORECASE,
+    )
+    if match:
+        try:
+            return max(1, math.ceil(float(match.group(1))))
+        except ValueError:
+            pass
+    match = re.search(r'"retry_after"\s*:\s*([\d.]+)', text)
+    if match:
+        try:
+            return max(1, math.ceil(float(match.group(1))))
+        except ValueError:
+            pass
+    return 60
 
 
 @dataclass(slots=True)
@@ -210,7 +261,7 @@ async def stream_chat(
                 )
             yield {"type": "tool_calls", "tool_calls": tool_calls}
     except Exception as exc:
-        raise LlmError(friendly_error(exc)) from exc
+        raise LlmError(friendly_error(exc), retry_after=retry_after_seconds(exc)) from exc
 
 
 async def complete(
@@ -226,7 +277,7 @@ async def complete(
     try:
         response = await module.acompletion(**kwargs)
     except Exception as exc:
-        raise LlmError(friendly_error(exc)) from exc
+        raise LlmError(friendly_error(exc), retry_after=retry_after_seconds(exc)) from exc
     try:
         choice = response.choices[0]
         content = choice.message.content

@@ -944,6 +944,26 @@
   background: var(--c-bg);
 }
 
+.composer__cooldown {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: min(100%, 820px);
+  margin: 0 auto 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  background: var(--c-warn-wash);
+  color: var(--c-warn);
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.composer__cooldown strong {
+  font-weight: 600;
+}
+
 .composer__meta {
   display: flex;
   align-items: baseline;

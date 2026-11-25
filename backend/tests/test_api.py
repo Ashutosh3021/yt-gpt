@@ -193,6 +193,34 @@ def test_session_chat_error_is_streamed_and_user_message_kept(auth_client, works
     assert [message["role"] for message in loaded.json()["messages"]] == ["user"]
 
 
+def test_session_chat_rate_limit_streams_retry_after(auth_client, workspace, monkeypatch):
+    from yt_gpt.llm.provider import LlmError
+    from yt_gpt.server.routes import sessions as sessions_route
+
+    session = auth_client.post(
+        f"/api/workspaces/{workspace['id']}/sessions",
+        json={"title": "Rate limit chat"},
+    )
+    session_id = session.json()["id"]
+
+    async def fake_run_chat(**kwargs):
+        raise LlmError("The provider rate-limited the request.", retry_after=42)
+        yield {}
+
+    monkeypatch.setattr(sessions_route, "run_chat", fake_run_chat)
+    response = auth_client.post(
+        f"/api/workspaces/{workspace['id']}/sessions/{session_id}/messages",
+        json={"content": "What is this about?"},
+    )
+    assert response.status_code == 200
+    events = [line[6:] for line in response.text.splitlines() if line.startswith("data: ")]
+    assert json.loads(events[0]) == {
+        "error": "The provider rate-limited the request.",
+        "retryAfter": 42,
+    }
+    assert events[-1] == "[DONE]"
+
+
 @pytest.mark.parametrize("path", ["/api/workspaces/nope", "/api/workspaces/ws_missing"])
 def test_missing_workspace_is_404(auth_client, path):
     assert auth_client.get(path).status_code == 404

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
+import { ApiError } from '../api/error';
 import { useAsync } from '../hooks/useAsync';
 import { useToast } from '../components/Toast';
 import { PageMeta } from '../components/PageMeta';
@@ -29,6 +30,7 @@ export function WorkspacePage() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState('');
+  const [cooldown, setCooldown] = useState(0);
   const [drawer, setDrawer] = useState<'library' | 'sources' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -41,6 +43,12 @@ export function WorkspacePage() {
   useEffect(() => {
     streamingRef.current = streaming;
   }, [streaming]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
 
   useEffect(() => {
     if (!ws) return;
@@ -67,7 +75,7 @@ export function WorkspacePage() {
   );
 
   async function send(text: string) {
-    if (!ws || !session || streaming) return;
+    if (!ws || !session || streaming || cooldown > 0) return;
     const sid = session.id;
     const controller = new AbortController();
     abortRef.current = controller;
@@ -113,7 +121,16 @@ export function WorkspacePage() {
           : prev,
       );
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'The answer stopped.', 'fail');
+      const wait = err instanceof ApiError ? err.retryAfter : undefined;
+      if (wait && wait > 0) {
+        setCooldown(Math.ceil(wait));
+        toast(
+          `${err instanceof Error ? err.message : 'The provider rate-limited the request.'} You can ask again in ${Math.ceil(wait)}s.`,
+          'signal',
+        );
+      } else {
+        toast(err instanceof Error ? err.message : 'The answer stopped.', 'fail');
+      }
     } finally {
       abortRef.current = null;
       setStreaming(false);
@@ -217,6 +234,7 @@ export function WorkspacePage() {
             session={session}
             streaming={streaming}
             streamText={streamText}
+            cooldown={cooldown}
             onSend={send}
             onStop={stop}
             onNewSession={newSession}

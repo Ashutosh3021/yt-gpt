@@ -67,10 +67,18 @@ async function streamMessage(
       const payload = line.slice(5).trim();
       if (!payload || payload === '[DONE]') continue;
       try {
-        const event = JSON.parse(payload) as { token?: string; message?: Message; error?: string };
+        const event = JSON.parse(payload) as {
+          token?: string;
+          message?: Message;
+          error?: string;
+          retryAfter?: number | null;
+        };
         if (event.token) onToken(event.token);
         if (event.message) final = event.message;
-        if (event.error) throw new ApiError(event.error);
+        if (event.error) {
+          const retryAfter = typeof event.retryAfter === 'number' ? event.retryAfter : undefined;
+          throw new ApiError(event.error, retryAfter ? 429 : 400, retryAfter);
+        }
       } catch (error) {
         if (error instanceof ApiError) throw error;
       }

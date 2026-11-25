@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import shutil
+import signal
 import sys
 import threading
 import webbrowser
 from pathlib import Path
+from types import FrameType
 
 from . import config
 from .llm.embeddings import ensure_workspace_embeddings
@@ -28,7 +30,27 @@ def _serve(args: argparse.Namespace) -> int:
     if not args.no_browser:
         threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     print(f"yt-gpt {__version__} serving at {url}")
-    uvicorn.run("yt_gpt.server.app:app", host=host, port=port, log_level=cfg.log_level)
+
+    class GracefulServer(uvicorn.Server):
+        def handle_exit(self, sig: int, frame: FrameType | None) -> None:
+            if self.should_exit and sig == signal.SIGINT:
+                self.force_exit = True
+            else:
+                self.should_exit = True
+
+    server = GracefulServer(
+        uvicorn.Config(
+            "yt_gpt.server.app:app",
+            host=host,
+            port=port,
+            log_level=cfg.log_level,
+            timeout_graceful_shutdown=10,
+        )
+    )
+    try:
+        server.run()
+    except KeyboardInterrupt:
+        pass
     return 0
 
 

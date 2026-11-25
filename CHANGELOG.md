@@ -19,6 +19,10 @@ All notable changes to this project are documented here. The format follows
   provider call, preventing per-minute token-limit failures on small-tier models.
 - Rate-limit errors now explain when a provider's input-tokens-per-minute limit
   was exceeded.
+- Rate-limited chats now show a visible cooldown countdown and disable sending
+  until the provider's retry window ends.
+- `yt-gpt serve` now shuts down cleanly on Ctrl+C without logging a lifespan
+  cancellation traceback.
 
 ### Planned
 

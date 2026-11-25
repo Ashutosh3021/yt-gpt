@@ -157,7 +157,10 @@ async def send_message(
                         )
                     )
         except LlmError as exc:
-            yield sse({"error": str(exc)})
+            payload: dict[str, Any] = {"error": str(exc)}
+            if exc.retry_after is not None:
+                payload["retryAfter"] = exc.retry_after
+            yield sse(payload)
         except asyncio.CancelledError:
             raise
         except Exception as exc:

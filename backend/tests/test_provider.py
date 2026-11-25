@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from yt_gpt.llm.provider import (
@@ -6,6 +8,7 @@ from yt_gpt.llm.provider import (
     friendly_error,
     litellm_embedding_model,
     litellm_model,
+    retry_after_seconds,
 )
 
 
@@ -46,3 +49,19 @@ def test_friendly_errors():
         RuntimeError("litellm.RateLimitError: input tokens per minute (ITPM): Limit 7000")
     )
     assert "context window" in friendly_error(RuntimeError("context length exceeded"))
+
+
+def test_retry_after_uses_provider_header():
+    exc = RuntimeError("429 rate limit")
+    exc.response = SimpleNamespace(headers={"retry-after": "12"})  # type: ignore[attr-defined]
+    assert retry_after_seconds(exc) == 12
+
+
+def test_retry_after_parses_provider_message():
+    assert retry_after_seconds(RuntimeError("RateLimitError: try again in 2.4s")) == 3
+    assert retry_after_seconds(RuntimeError('429 {"retry_after": 7}')) == 7
+
+
+def test_retry_after_defaults_for_rate_limit_only():
+    assert retry_after_seconds(RuntimeError("429 rate limit")) == 60
+    assert retry_after_seconds(RuntimeError("401 unauthorized")) is None

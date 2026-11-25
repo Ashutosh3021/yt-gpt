@@ -82,6 +82,7 @@ export function ChatView({
   session,
   streaming,
   streamText,
+  cooldown,
   onSend,
   onStop,
   onNewSession,
@@ -92,6 +93,7 @@ export function ChatView({
   session: Session | null;
   streaming: boolean;
   streamText: string;
+  cooldown: number;
   onSend: (text: string) => void;
   onStop: () => void;
   onNewSession: () => void;
@@ -141,7 +143,7 @@ export function ChatView({
   function submit(e?: FormEvent) {
     e?.preventDefault();
     const text = draft.trim();
-    if (!text || streaming) return;
+    if (!text || streaming || cooldown > 0) return;
     setDraft('');
     onSend(text);
   }
@@ -216,7 +218,7 @@ export function ChatView({
                     type="button"
                     className="prompt"
                     onClick={() => onSend(q)}
-                    disabled={streaming}
+                    disabled={streaming || cooldown > 0}
                   >
                     <span>{q}</span>
                     <Icon name="arrow-up-right" size={15} />
@@ -259,13 +261,24 @@ export function ChatView({
       </div>
 
       <form className="composer" onSubmit={submit}>
+        {cooldown > 0 && (
+          <div className="composer__cooldown" role="status">
+            <Icon name="clock" size={14} />
+            <span className="sr-only">Rate limit cooldown active.</span>
+            <span aria-hidden="true">
+              Rate limit reached. Send again in <strong>{cooldown}s</strong>.
+            </span>
+          </div>
+        )}
         <div className="composer__meta">
           <span>
             {streaming
               ? 'Answer in progress. Stop to edit.'
-              : ready > 0
-                ? `${plural(ready, 'source')} ready. Answers cite the minute.`
-                : 'No ready sources yet.'}
+              : cooldown > 0
+                ? `Cooling down for ${cooldown}s.`
+                : ready > 0
+                  ? `${plural(ready, 'source')} ready. Answers cite the minute.`
+                  : 'No ready sources yet.'}
           </span>
           <span className="composer__key">Enter to send · Shift + Enter for a new line</span>
         </div>
@@ -295,7 +308,12 @@ export function ChatView({
                 Stop
               </Button>
             ) : (
-              <Button type="submit" size="sm" iconRight="send" disabled={!draft.trim() || !session}>
+              <Button
+                type="submit"
+                size="sm"
+                iconRight="send"
+                disabled={!draft.trim() || !session || cooldown > 0}
+              >
                 Send
               </Button>
             )}
